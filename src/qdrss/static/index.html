@@ -211,7 +211,7 @@ function showExamples(name) {
   examples.replaceChildren(...(EXAMPLES[name] || []).map(q => {
     const b = document.createElement('button');
     b.type = 'button'; b.textContent = q;
-    b.addEventListener('click', () => { document.getElementById('q').value = q; pickedBar.show(q); form.requestSubmit(); });
+    b.addEventListener('click', () => { document.getElementById('q').value = q; form.requestSubmit(); });
     return b;
   }));
 }
@@ -328,6 +328,7 @@ async function preview(url) {
 
 form.addEventListener('submit', (ev) => {
   ev.preventDefault();
+  pickedBar.show(document.getElementById('q').value.trim());   // however the topic arrived (typed, sample or shared link), the samples fold away while its results show
   const url = feedUrl();
   urlText.textContent = url; openLink.href = url; urlBox.style.display = 'block';
   // The archive is on by default, so only turning it off goes in the link.
@@ -350,7 +351,6 @@ showExamples(collection);
 loadTabs();
 if (initial.get('q')) {
   document.getElementById('q').value = initial.get('q');
-  if (Object.values(EXAMPLES).flat().includes(initial.get('q'))) pickedBar.show(initial.get('q'));
   if (initial.get('limit')) document.getElementById('limit').value = initial.get('limit');
   if (initial.get('archive') === '0') document.getElementById('archive').checked = false;
   if (initial.get('fresh')) document.getElementById('fresh').checked = true;

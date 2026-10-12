@@ -127,7 +127,7 @@ for (const q of EXAMPLES) {
   const b = document.createElement('button');
   b.type = 'button';
   b.textContent = q;
-  b.addEventListener('click', () => { $('q').value = q; pickedBar.show(q); $('form').requestSubmit(); });
+  b.addEventListener('click', () => { $('q').value = q; $('form').requestSubmit(); });
   $('examples').append(b);
 }
 
@@ -198,6 +198,7 @@ function render(xml) {
 
 $('form').addEventListener('submit', async event => {
   event.preventDefault();
+  pickedBar.show($('q').value.trim());   // however the topic arrived (typed, sample or shared link), the samples fold away while its results show
   const url = feedUrl();
   history.replaceState(null, '', `?${new URLSearchParams({ q: $('q').value.trim(), ...($('archive').checked ? {} : { archive: '0' }), ...($('fresh').checked ? {} : { fresh: '0' }) })}`);
   $('feedurl').textContent = url;
@@ -226,7 +227,7 @@ $('copy').addEventListener('click', async () => {
 const initial = new URLSearchParams(location.search);
 if (initial.get('archive') === '0') $('archive').checked = false;
 if (initial.get('fresh') === '0') $('fresh').checked = false;
-if (initial.get('q')) { $('q').value = initial.get('q'); if (EXAMPLES.includes(initial.get('q'))) pickedBar.show(initial.get('q')); $('form').requestSubmit(); }
+if (initial.get('q')) { $('q').value = initial.get('q'); $('form').requestSubmit(); }
 </script>
 </body>
 </html>
