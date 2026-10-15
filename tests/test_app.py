@@ -1,3 +1,4 @@
+import logging
 import xml.etree.ElementTree as ET
 from datetime import timedelta
 
@@ -182,3 +183,14 @@ async def test_a_failed_ranking_is_counted_as_a_server_error(tmp_path):
         seen = client.get("/health").json()["feed_requests"]
         assert seen["server_errors"] == 1
         assert seen["last_error"] == "ranking unavailable: down"
+
+
+def test_the_azure_sdk_does_not_log_every_request_at_info():
+    # In a fresh interpreter, as the service starts: pytest's own log handler would make basicConfig a no-op here.
+    import subprocess, sys
+    code = ("import logging; from qdrss.app import configure_logging; configure_logging(); "
+            "print(logging.getLogger('azure.core.pipeline.policies.http_logging_policy').getEffectiveLevel(), "
+            "logging.getLogger('qdrss').getEffectiveLevel())")
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True,
+                         env={**__import__("os").environ, "PYTHONPATH": "src"}).stdout.split()
+    assert out == [str(logging.WARNING), str(logging.INFO)]

@@ -364,8 +364,15 @@ def create_app(services: Services) -> Starlette:
     )
 
 
-def main() -> None:
+def configure_logging() -> None:
+    """INFO for this app. The Azure SDK logs every HTTP request and response with all of its headers at INFO, once per Cosmos call: ingest
+    wrote 30-60 GiB of it a day to Cloud Logging, so its loggers are held at WARNING."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
+    logging.getLogger("azure").setLevel(logging.WARNING)
+
+
+def main() -> None:
+    configure_logging()
     services = build_services()
     uvicorn.run(create_app(services), host=services.config.host, port=services.config.port)
 
@@ -376,7 +383,7 @@ def ingest_main() -> None:
     Runs anywhere with the same .env as the web app; with Cosmos this is how the
     corpus is updated independently of serving.
     """
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
+    configure_logging()
 
     async def run() -> None:
         services = build_services()
