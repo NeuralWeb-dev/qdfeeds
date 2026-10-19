@@ -1,7 +1,7 @@
 [project]
 name = "qdrss"
 version = "0.1.0"
-description = "Query Defined RSS: a natural-language query is a feed over a corpus of upstream feeds"
+description = "Query Defined Feeds: a natural-language query is a feed over a corpus of upstream feeds"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "GPL-3.0-or-later"

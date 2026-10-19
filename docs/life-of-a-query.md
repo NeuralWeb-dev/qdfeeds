@@ -1,12 +1,12 @@
-# Life of a query: QDRSS (query-defined RSS)
+# Life of a query: QDFeeds (query-defined feeds)
 
 *Design document, 2026-10-09. Covers `rssnlweb` as deployed in revision `qdrss-00034-zix`. Every claim carries a file and line reference; numbers marked "measured" were read from the running service the same day. Sibling documents: `ard-finder/docs/life-of-a-query.md`, `NeuralKG2/docs/life-of-a-query.md`, `nlweb-samples/docs/life-of-a-query.md`.*
 
 ## 0. How to read this
 
-QDRSS (at `rss.neuralweb.dev`) turns a **standing interest** written as a sentence into an **RSS feed**: the recent items (episodes, or transcript passages) of a collection that a model judged to match it. You subscribe to the topic, not to a show. It is used by the NYT, NPR and This American Life pages and by any feed reader.
+QDFeeds (at `rss.neuralweb.dev`) turns a **standing interest** written as a sentence into an **RSS feed**: the recent items (episodes, or transcript passages) of a collection that a model judged to match it. You subscribe to the topic, not to a show. It is used by the NYT, NPR and This American Life pages and by any feed reader.
 
-QDRSS does not call ARD or NeuralKG2. It shares only the model provider (OpenRouter) and the principle that a model judges and code does everything else.
+QDFeeds does not call ARD or NeuralKG2. It shares only the model provider (OpenRouter) and the principle that a model judges and code does everything else.
 
 ### Words used throughout
 
@@ -15,11 +15,11 @@ QDRSS does not call ARD or NeuralKG2. It shares only the model provider (OpenRou
 - **Ingest time**: when the service first saw an item. A feed's default window and its ordering use it, not the publication date.
 - **Strong / relevant / exclude**: the model's verdict on one candidate against the interest.
 
-## 1. Where QDRSS sits
+## 1. Where QDFeeds sits
 
 ```mermaid
 flowchart LR
-  R[Feed reader or page] -->|GET /feed.xml?q=| Q[QDRSS<br/>rss.neuralweb.dev]
+  R[Feed reader or page] -->|GET /feed.xml?q=| Q[QDFeeds<br/>rss.neuralweb.dev]
   Q --> COS[(Cosmos DB<br/>items + vectors)]
   Q <-->|embed, classify| OR[(OpenRouter)]
   ING[Ingest loop] -->|RSS, TAL transcripts| COS
@@ -30,7 +30,7 @@ One Starlette app on Cloud Run (`qdrss`, `us-central1`). Items and vectors are i
 
 ## 2. The life of a feed query
 
-QDRSS turns a **standing interest** into an RSS feed. The interest is a sentence; the feed is the recent items (or passages) of a collection that a model judged to match it. Source: `rssnlweb` (`src/qdrss/`).
+QDFeeds turns a **standing interest** into an RSS feed. The interest is a sentence; the feed is the recent items (or passages) of a collection that a model judged to match it. Source: `rssnlweb` (`src/qdrss/`).
 
 There are two halves: ingestion keeps the corpus current, and `/feed.xml` answers an interest against it.
 
@@ -70,7 +70,7 @@ GET /feed.xml?q=<interest>[&collection=npr][&limit=40][&since=2000-01-01][&thres
 
 **8. Render** RSS 2.0. Channel title `rssnlweb: <q>`. Each item has the title, link, `guid` (the item id), `pubDate`, `source` (the show), a description `[strong] <why>` followed by the first 1000 characters of the text, and a `qd:` extension: `qd:category`, `qd:ingestedAt`, `qd:source`, and for transcript passages `qd:episode`, `qd:act`, `qd:offsetSeconds`, `qd:endSeconds`, `qd:transcript` and `qd:audio`.
 
-### 2.3 Where QDRSS is deterministic and where it is not
+### 2.3 Where QDFeeds is deterministic and where it is not
 
 Deterministic: parsing, ids, windowing of transcripts, retrieval for a fixed embedding, ordering, ETags. Model-driven: the embeddings and every strong/relevant/exclude verdict and `why`. The verdicts vary between providers even at temperature 0, which is why the status ledger (the status ledger at `neuralweb.dev/status`) judges the feeds independently with a stronger model.
 
