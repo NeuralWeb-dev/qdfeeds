@@ -1,4 +1,4 @@
-# rssnlweb — Query Defined RSS
+# qdfeeds — Query Defined Feeds
 
 A natural-language query is a feed. The server keeps a corpus of upstream RSS/Atom
 items and, when a feed is fetched, returns the newest items that match the query.
@@ -156,4 +156,4 @@ Fake providers throughout; the conditional-GET paths use `httpx.MockTransport`.
 
 ## License
 
-Copyright (C) 2026 the QD RSS authors. This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. See [LICENSE](LICENSE).
+Copyright (C) 2026 the QD Feeds authors. This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. See [LICENSE](LICENSE).

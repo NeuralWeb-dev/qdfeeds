@@ -1,1 +1,1 @@
-"""Query Defined RSS."""
+"""Query Defined Feeds."""
