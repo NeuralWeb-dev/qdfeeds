@@ -22,7 +22,7 @@ def test_manifest_loads_with_unique_names_and_https_urls():
 
 def test_npr_collection():
     npr = [s for s in load_sources(MANIFEST) if s.collection == "npr"]
-    assert 90 <= len(npr) <= 120
+    assert 280 <= len(npr) <= 320
     assert all(s.name.startswith("npr_") for s in npr)
     # A feed listed twice would ingest the same episodes under two source names.
     assert not [url for url, n in Counter(s.url for s in npr).items() if n > 1]
