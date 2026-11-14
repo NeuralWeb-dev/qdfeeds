@@ -1659,6 +1659,292 @@ nytimes:
   url: https://podcasts.nytimes.com/services/xml/rss/nyt/podcasts/inadvertising.xml
   # NYT: Advertising Spotlight — The New York Times; latest 2006-12-11
 
+nytnews:
+# New York Times articles: every section feed listed at nytimes.com/rss and The Athletic's league and
+# topic feeds (nytimes.com/athletic/rss/<league>/), checked 2026-11-14 with QDRSS's parser. The feeds
+# carry recent articles only; scripts/backfill_nyt_news.py adds ten years from the NYT Archive API, filed
+# under these sources by section. One article is often in several feeds (a section, HomePage, MostViewed);
+# a feed keeps one result per URL. Left out: Sports.xml, which NYT leaves empty (its sports coverage is The Athletic's).
+- name: nytnews_africa
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Africa.xml
+  # NYT > World > Africa; 20 items, latest 2026-11-13
+- name: nytnews_americas
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Americas.xml
+  # NYT > World > Americas; 25 items, latest 2026-11-14
+- name: nytnews_artanddesign
+  url: https://rss.nytimes.com/services/xml/rss/nyt/ArtandDesign.xml
+  # NYT > Arts > Art & Design; 32 items, latest 2026-11-14
+- name: nytnews_arts
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml
+  # NYT > Arts; 63 items, latest 2026-11-14
+- name: nytnews_asiapacific
+  url: https://rss.nytimes.com/services/xml/rss/nyt/AsiaPacific.xml
+  # NYT > World > Asia Pacific; 20 items, latest 2026-11-14
+- name: nytnews_automobiles
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Automobiles.xml
+  # NYT > Automobiles; 20 items, latest 2026-11-10
+- name: nytnews_baseball
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Baseball.xml
+  # NYT > Sports > Baseball; 20 items, latest 2026-11-01
+- name: nytnews_business
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Business.xml
+  # NYT > Business; 49 items, latest 2026-11-14
+- name: nytnews_climate
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Climate.xml
+  # NYT > Climate and Environment; 44 items, latest 2026-11-13
+- name: nytnews_collegebasketball
+  url: https://rss.nytimes.com/services/xml/rss/nyt/CollegeBasketball.xml
+  # NYT > Sports > College Basketball; 20 items, latest 2026-03-18
+- name: nytnews_collegefootball
+  url: https://rss.nytimes.com/services/xml/rss/nyt/CollegeFootball.xml
+  # NYT > Sports > College Football; 20 items, latest 2025-12-14
+- name: nytnews_dance
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Dance.xml
+  # NYT > Arts > Dance; 20 items, latest 2026-11-13
+- name: nytnews_dealbook
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Dealbook.xml
+  # NYT > Business > DealBook; 20 items, latest 2026-11-13
+- name: nytnews_diningandwine
+  url: https://rss.nytimes.com/services/xml/rss/nyt/DiningandWine.xml
+  # NYT > Food; 21 items, latest 2026-11-13
+- name: nytnews_economy
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml
+  # NYT > Business > Economy; 20 items, latest 2026-11-13
+- name: nytnews_education
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Education.xml
+  # NYT > Education; 20 items, latest 2026-11-14
+- name: nytnews_energyenvironment
+  url: https://rss.nytimes.com/services/xml/rss/nyt/EnergyEnvironment.xml
+  # NYT > Business > Energy & Environment; 20 items, latest 2026-11-13
+- name: nytnews_europe
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Europe.xml
+  # NYT > World > Europe; 20 items, latest 2026-11-13
+- name: nytnews_fashionandstyle
+  url: https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml
+  # NYT > Style; 45 items, latest 2026-11-13
+- name: nytnews_golf
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Golf.xml
+  # NYT > Sports > Golf; 20 items, latest 2026-10-19
+- name: nytnews_health
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Health.xml
+  # NYT > Health; 20 items, latest 2026-11-14
+- name: nytnews_hockey
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Hockey.xml
+  # NYT > Sports > Hockey; 20 items, latest 2026-08-13
+- name: nytnews_homepage
+  url: https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
+  # NYT > Top Stories; 29 items, latest 2026-11-14
+- name: nytnews_jobs
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Jobs.xml
+  # NYT > Jobs; 20 items, latest 2026-10-12
+- name: nytnews_lens
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Lens.xml
+  # NYT > Lens; 20 items, latest 2026-04-14
+- name: nytnews_mediaandadvertising
+  url: https://rss.nytimes.com/services/xml/rss/nyt/MediaandAdvertising.xml
+  # NYT > Business > Media; 20 items, latest 2026-11-13
+- name: nytnews_middleeast
+  url: https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml
+  # NYT > World > Middle East; 24 items, latest 2026-11-13
+- name: nytnews_mostemailed
+  url: https://rss.nytimes.com/services/xml/rss/nyt/MostEmailed.xml
+  # NYT > Most Popular; 20 items, latest 2026-11-13
+- name: nytnews_mostshared
+  url: https://rss.nytimes.com/services/xml/rss/nyt/MostShared.xml
+  # NYT > Most Popular; 20 items, latest 2026-11-13
+- name: nytnews_mostviewed
+  url: https://rss.nytimes.com/services/xml/rss/nyt/MostViewed.xml
+  # NYT > Most Popular; 15 items, latest 2026-11-14
+- name: nytnews_movies
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Movies.xml
+  # NYT > Movies; 28 items, latest 2026-11-13
+- name: nytnews_music
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Music.xml
+  # NYT > Arts > Music; 27 items, latest 2026-11-13
+- name: nytnews_nyregion
+  url: https://rss.nytimes.com/services/xml/rss/nyt/NYRegion.xml
+  # NYT > New York; 20 items, latest 2026-11-14
+- name: nytnews_obituaries
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Obituaries.xml
+  # NYT > Obituaries; 27 items, latest 2026-11-13
+- name: nytnews_personaltech
+  url: https://rss.nytimes.com/services/xml/rss/nyt/PersonalTech.xml
+  # NYT > Technology > Personal Tech; 20 items, latest 2026-11-11
+- name: nytnews_politics
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml
+  # NYT > U.S. > Politics; 20 items, latest 2026-11-14
+- name: nytnews_probasketball
+  url: https://rss.nytimes.com/services/xml/rss/nyt/ProBasketball.xml
+  # NYT > Sports > Basketball; 20 items, latest 2026-09-05
+- name: nytnews_profootball
+  url: https://rss.nytimes.com/services/xml/rss/nyt/ProFootball.xml
+  # NYT > Sports > N.F.L.; 20 items, latest 2026-10-28
+- name: nytnews_realestate
+  url: https://rss.nytimes.com/services/xml/rss/nyt/RealEstate.xml
+  # NYT > Real Estate; 20 items, latest 2026-11-13
+- name: nytnews_science
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Science.xml
+  # NYT > Science; 28 items, latest 2026-11-13
+- name: nytnews_smallbusiness
+  url: https://rss.nytimes.com/services/xml/rss/nyt/SmallBusiness.xml
+  # NYT > Business > Small Business; 20 items, latest 2026-11-13
+- name: nytnews_soccer
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Soccer.xml
+  # NYT > Sports > Soccer; 20 items, latest 2026-10-26
+- name: nytnews_space
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Space.xml
+  # NYT > Science > Space & Cosmos; 20 items, latest 2026-11-09
+- name: nytnews_technology
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml
+  # NYT > Technology; 39 items, latest 2026-11-13
+- name: nytnews_television
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Television.xml
+  # NYT > Arts > Television; 20 items, latest 2026-11-13
+- name: nytnews_tennis
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Tennis.xml
+  # NYT > Sports > Tennis; 20 items, latest 2026-08-21
+- name: nytnews_theater
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Theater.xml
+  # NYT > Theater; 20 items, latest 2026-11-13
+- name: nytnews_us
+  url: https://rss.nytimes.com/services/xml/rss/nyt/US.xml
+  # NYT > U.S. News; 28 items, latest 2026-11-14
+- name: nytnews_upshot
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Upshot.xml
+  # NYT > The Upshot; 20 items, latest 2026-11-14
+- name: nytnews_weather
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Weather.xml
+  # NYT > Weather; 20 items, latest 2026-11-13
+- name: nytnews_weddings
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Weddings.xml
+  # NYT > Fashion > Love; 20 items, latest 2026-11-13
+- name: nytnews_well
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Well.xml
+  # NYT > Well; 20 items, latest 2026-11-14
+- name: nytnews_world
+  url: https://rss.nytimes.com/services/xml/rss/nyt/World.xml
+  # NYT > World News; 55 items, latest 2026-11-14
+- name: nytnews_yourmoney
+  url: https://rss.nytimes.com/services/xml/rss/nyt/YourMoney.xml
+  # NYT > Your Money; 20 items, latest 2026-11-14
+- name: nytnews_recent
+  url: https://rss.nytimes.com/services/xml/rss/nyt/recent.xml
+  # NYT > Most Recent Headlines; 50 items, latest 2026-11-14
+- name: nytnews_tmagazine
+  url: https://rss.nytimes.com/services/xml/rss/nyt/tmagazine.xml
+  # NYT > T Magazine; 20 items, latest 2026-11-13
+- name: nytnews_athletic_news
+  url: https://www.nytimes.com/athletic/rss/news/
+  # Latest Headlines - The Athletic; 100 items, latest 2026-11-14
+- name: nytnews_athletic_nfl
+  url: https://www.nytimes.com/athletic/rss/nfl/
+  # NFL - The Athletic; 100 items, latest 2026-11-14
+- name: nytnews_athletic_nba
+  url: https://www.nytimes.com/athletic/rss/nba/
+  # NBA - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_mlb
+  url: https://www.nytimes.com/athletic/rss/mlb/
+  # MLB - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_nhl
+  url: https://www.nytimes.com/athletic/rss/nhl/
+  # NHL - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_football
+  url: https://www.nytimes.com/athletic/rss/football/
+  # Soccer - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_college_football
+  url: https://www.nytimes.com/athletic/rss/college-football/
+  # College Football - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_college_basketball
+  url: https://www.nytimes.com/athletic/rss/college-basketball/
+  # Men's College Basketball - The Athletic; 100 items, latest 2026-11-14
+- name: nytnews_athletic_womens_college_basketball
+  url: https://www.nytimes.com/athletic/rss/womens-college-basketball/
+  # Women's College Basketball - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_wnba
+  url: https://www.nytimes.com/athletic/rss/wnba/
+  # WNBA - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_mls
+  url: https://www.nytimes.com/athletic/rss/mls/
+  # MLS - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_nwsl
+  url: https://www.nytimes.com/athletic/rss/nwsl/
+  # NWSL - The Athletic; 100 items, latest 2026-11-14
+- name: nytnews_athletic_premier_league
+  url: https://www.nytimes.com/athletic/rss/premier-league/
+  # Premier League - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_champions_league
+  url: https://www.nytimes.com/athletic/rss/champions-league/
+  # Champions League - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_la_liga
+  url: https://www.nytimes.com/athletic/rss/la-liga/
+  # La Liga - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_serie_a
+  url: https://www.nytimes.com/athletic/rss/serie-a/
+  # Serie A - The Athletic; 100 items, latest 2026-11-11
+- name: nytnews_athletic_bundesliga
+  url: https://www.nytimes.com/athletic/rss/bundesliga/
+  # Bundesliga - The Athletic; 100 items, latest 2026-11-10
+- name: nytnews_athletic_world_cup
+  url: https://www.nytimes.com/athletic/rss/world-cup/
+  # FIFA Men's World Cup - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_golf
+  url: https://www.nytimes.com/athletic/rss/golf/
+  # Golf - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_tennis
+  url: https://www.nytimes.com/athletic/rss/tennis/
+  # Tennis - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_formula_1
+  url: https://www.nytimes.com/athletic/rss/formula-1/
+  # Formula 1 - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_motorsports
+  url: https://www.nytimes.com/athletic/rss/motorsports/
+  # Motorsports - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_nascar
+  url: https://www.nytimes.com/athletic/rss/nascar/
+  # NASCAR - The Athletic; 100 items, latest 2026-11-12
+- name: nytnews_athletic_cycling
+  url: https://www.nytimes.com/athletic/rss/cycling/
+  # Cycling - The Athletic; 100 items, latest 2026-11-11
+- name: nytnews_athletic_boxing
+  url: https://www.nytimes.com/athletic/rss/boxing/
+  # Boxing - The Athletic; 100 items, latest 2026-11-11
+- name: nytnews_athletic_mma
+  url: https://www.nytimes.com/athletic/rss/mma/
+  # Mixed Martial Arts - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_olympics
+  url: https://www.nytimes.com/athletic/rss/olympics/
+  # Olympics - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_cricket
+  url: https://www.nytimes.com/athletic/rss/cricket/
+  # Cricket - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_college_sports
+  url: https://www.nytimes.com/athletic/rss/college-sports/
+  # College Sports - The Athletic; 100 items, latest 2026-11-12
+- name: nytnews_athletic_sports_business
+  url: https://www.nytimes.com/athletic/rss/sports-business/
+  # Sports Business - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_sports_betting
+  url: https://www.nytimes.com/athletic/rss/sports-betting/
+  # Sports Betting - The Athletic; 100 items, latest 2026-11-12
+- name: nytnews_athletic_fantasy_football
+  url: https://www.nytimes.com/athletic/rss/fantasy-football/
+  # Fantasy Football - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_fantasy_baseball
+  url: https://www.nytimes.com/athletic/rss/fantasy-baseball/
+  # Fantasy Baseball - The Athletic; 100 items, latest 2026-11-11
+- name: nytnews_athletic_fantasy_basketball
+  url: https://www.nytimes.com/athletic/rss/fantasy-basketball/
+  # Fantasy Basketball - The Athletic; 100 items, latest 2026-11-12
+- name: nytnews_athletic_fantasy_hockey
+  url: https://www.nytimes.com/athletic/rss/fantasy-hockey/
+  # Fantasy Hockey - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_culture
+  url: https://www.nytimes.com/athletic/rss/culture/
+  # Culture - The Athletic; 100 items, latest 2026-11-13
+- name: nytnews_athletic_gaming
+  url: https://www.nytimes.com/athletic/rss/gaming/
+  # Gaming - The Athletic; 100 items, latest 2026-10-28
+
 npr:
 # The NPR universe, checked 2026-10-07 (every feed fetched and parsed with QDRSS's own parser):
 # the shows NPR publishes (Apple's publisher "NPR" and "NPR Network"), plus public-radio shows

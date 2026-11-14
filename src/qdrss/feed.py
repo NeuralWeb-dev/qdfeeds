@@ -69,7 +69,7 @@ async def evaluate(
     since = request.since or (now or datetime.now(UTC)) - timedelta(days=window_days)
     vector = await _query_vector(embedder, request.q)
     pool = candidate_count * FRESH_POOL if request.fresh else candidate_count
-    candidates = await retriever.search(vector, since, request.collection, pool)
+    candidates = one_per_url(await retriever.search(vector, since, request.collection, pool))
     if request.fresh:
         candidates = freshen(candidates, request.fresh, candidate_count, now or datetime.now(UTC))
     matches = await classify(request.q, candidates, ranker, batch_size)
@@ -81,6 +81,22 @@ async def evaluate(
     # time put items out of date order whenever a source was ingested in batches.)
     matches.sort(key=lambda m: (-published(m.item).timestamp(), m.item.id))
     return matches[: request.limit]
+
+
+def one_per_url(candidates: list[Candidate]) -> list[Candidate]:
+    """The closest candidate for each URL. A publisher lists one article in several of its feeds (a
+    section, its home page, its most-viewed list), each a separate source here, so without this one story
+    fills several places in a feed. Exact URLs: This American Life passages share a page and differ in
+    their #t= anchor, and they are different items. An item without a URL is kept."""
+    seen: set[str] = set()
+    out = []
+    for candidate in candidates:
+        url = candidate.item.url
+        if url and url in seen:
+            continue
+        seen.add(url)
+        out.append(candidate)
+    return out
 
 
 FRESH_POOL = 3          # a freshness boost chooses its candidates from this many times the usual number

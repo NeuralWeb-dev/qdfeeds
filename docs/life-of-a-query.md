@@ -36,7 +36,7 @@ There are two halves: ingestion keeps the corpus current, and `/feed.xml` answer
 
 ### 2.1 The corpus (ingestion)
 
-**Sources.** `sources.yaml` maps collection names to lists of `{name, url[, segmenter]}`. Twelve collections: `ai`, `history`, `finance`, `international`, `cricket`, `american_football`, `soccer`, `nonprofit`, `war`, `nytimes` (171 shows, The Athletic included), `npr` (300 shows) and `tal` (This American Life, one segmented source). `/collections` reports sources and items per collection (for example `npr` 55,302 items, `tal` 28,444 passages, `nytimes` 8,776 items).
+**Sources.** `sources.yaml` maps collection names to lists of `{name, url[, segmenter]}`. Thirteen collections: `ai`, `history`, `finance`, `international`, `cricket`, `american_football`, `soccer`, `nonprofit`, `war`, `nytimes` (171 shows, The Athletic included), `nytnews` (NYT and Athletic article feeds, 93, with ten years of Archive API history), `npr` (300 shows) and `tal` (This American Life, one segmented source). `/collections` reports sources and items per collection (for example `npr` 55,302 items, `tal` 28,444 passages, `nytimes` 8,776 items).
 
 **Fetch** (`ingest.py:94-148`). All sources are fetched concurrently (semaphore of 4, 30 s timeout). Requests are conditional (stored ETag and Last-Modified); a 304 or an unchanged body hash is skipped. A new source's RFC 5005 archive pages (`rel="next"`, up to 200 pages) are followed once, so the full back catalogue is ingested. A feed is parsed **before** its validators are saved, so a malformed body never poisons the next fetch. A source that fails keeps its old items and records `last_error`; one failing source never blocks the others.
 
