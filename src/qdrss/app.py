@@ -26,7 +26,7 @@ from .config import Config, load_config
 from .feed import FeedRequest, Retriever, evaluate, render_rss
 from .feeds import parse_date
 from .index import Index, build_index
-from .ingest import load_sources, refresh
+from .ingest import load_sources, refresh, select_sources
 from .providers import Embeddings, HashEmbeddings, KeywordRanker, OpenRouter, Ranker
 from .rank import RankingError
 
@@ -387,6 +387,8 @@ def ingest_main() -> None:
 
     async def run() -> None:
         services = build_services()
+        # QDRSS_INGEST_COLLECTIONS=nytnews fetches just those collections (an hourly job for news).
+        services.sources = select_sources(services.sources, os.environ.get("QDRSS_INGEST_COLLECTIONS", ""))
         await services.setup()
         try:
             await services.refresh_once()

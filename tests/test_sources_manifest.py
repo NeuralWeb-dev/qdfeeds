@@ -49,3 +49,15 @@ def test_nytnews_collection():
     # scripts/backfill_nyt_news.py files archive articles under these by section.
     for section in ("nytnews_world", "nytnews_politics", "nytnews_business", "nytnews_athletic_nfl"):
         assert section in names
+
+
+def test_select_sources_by_collection():
+    from qdrss.ingest import select_sources
+    sources = load_sources(MANIFEST)
+    assert select_sources(sources, "") == sources
+    news = select_sources(sources, "nytnews")
+    assert news and {s.collection for s in news} == {"nytnews"}
+    assert {s.collection for s in select_sources(sources, "nytnews, nytimes")} == {"nytnews", "nytimes"}
+    import pytest
+    with pytest.raises(ValueError):
+        select_sources(sources, "nope")
