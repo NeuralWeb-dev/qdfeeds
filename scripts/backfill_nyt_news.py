@@ -220,10 +220,16 @@ async def main() -> None:
     parser.add_argument("--start", default=f"{now.year - 10}-{now.month:02d}")
     parser.add_argument("--end", default=last)
     parser.add_argument("--no-embed", action="store_true", help="store only; the next ingest embeds")
+    parser.add_argument("--fetch-only", action="store_true",
+                        help="fill the cache from the Archive API and stop; no store needed")
     args = parser.parse_args()
     load_dotenv()
     key = os.environ["NYT_API_KEY"]
     logging.basicConfig(level=logging.WARNING)
+    if args.fetch_only:
+        for year, month in month_range(args.start, args.end):
+            print(f"{year}-{month:02d}: {len(fetch_month(year, month, key)):5} articles cached", flush=True)
+        return
 
     titles = source_titles()
     missing = set(SECTIONS.values()) - set(titles)
