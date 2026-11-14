@@ -1361,6 +1361,303 @@ nytimes:
 - name: nyt_wine_update
   url: https://podcasts.nytimes.com/services/xml/rss/nyt/podcasts/wineupdate.xml
   # Wine Update — The New York Times; latest 2007-05-09
+# Added 2026-11-14: the rest of what Apple lists under The New York Times, Serial Productions and
+# The Athletic (bought by the Times in 2022), active or not, each fetched and parsed with QDRSS's own
+# parser. Five Athletic shows already in the sports collections stay there and are not repeated here.
+- name: nyt_athletic_nba_daily
+  url: https://feeds.acast.com/public/shows/6818c192eb737caf8cadd833
+  # The Athletic NBA Daily — The Athletic; latest 2026-11-13
+- name: nyt_athletic_live
+  url: https://feeds.acast.com/public/shows/6a99bb5fe7a9fe247882211f
+  # The Athletic LIVE — The Athletic; latest 2026-11-13
+- name: nyt_athletic_no_offseason_women_s_basketball_show
+  url: https://feeds.acast.com/public/shows/6818a0d4eb737caf8ca3e31e
+  # No Offseason: The Athletic Women's Basketball Show — The Athletic; latest 2026-11-13
+- name: nyt_athletic_pablo_torre_finds_out
+  url: https://feeds.acast.com/public/shows/68b1d0ea993d10acb9c3fe4f
+  # Pablo Torre Finds Out — The Athletic; latest 2026-11-13
+- name: nyt_athletic_hockey_show
+  url: https://feeds.acast.com/public/shows/6818bb89f30c20bff73c9ebc
+  # The Athletic Hockey Show — The Athletic; latest 2026-11-13
+- name: nyt_athletic_rates_barrels
+  url: https://feeds.acast.com/public/shows/6818a1a4eb737caf8ca41879
+  # Rates & Barrels: A show about Baseball — The Athletic; latest 2026-11-13
+- name: nyt_athletic_down_to_dunk_okc_thunder
+  url: https://feeds.acast.com/public/shows/6818858d1d28d6231399700d
+  # Down to Dunk OKC Thunder Podcast — The Athletic; latest 2026-11-13
+- name: nyt_athletic_show
+  url: https://feeds.acast.com/public/shows/68f8b13a237885ef40a1df42
+  # The Athletic Show — The Athletic; latest 2026-11-12
+- name: nyt_athletic_walk_on_fc_s_liverpool_show
+  url: https://feeds.acast.com/public/shows/681ccc398b1f3232bc1e68ae
+  # Walk On: The Athletic FC's Liverpool show — The Athletic; latest 2026-11-12
+- name: nyt_athletic_full_time
+  url: https://feeds.acast.com/public/shows/6818801871c041c8cc75b143
+  # Full Time: A show about women's soccer — The Athletic; latest 2026-11-12
+- name: nyt_athletic_total_soccer_show_usmnt_champions_league
+  url: https://feeds.acast.com/public/shows/6818cfc81d28d62313b34379
+  # Total Soccer Show: USMNT, Champions League, EPL, and more ... — TSS, The Athletic; latest 2026-11-12
+- name: nyt_athletic_talk_of_the_devils_fc_s_manchester_unite
+  url: https://feeds.acast.com/public/shows/6819aed5eb146d8e3506a450
+  # Talk of the Devils: The Athletic FC's Manchester United show — The Athletic; latest 2026-11-12
+- name: nyt_athletic_the_view_from_the_lane_fc_s_spurs_show
+  url: https://feeds.acast.com/public/shows/681ccd8a24b1daf01a7207ba
+  # The View From The Lane: The Athletic FC's Spurs show — The Athletic; latest 2026-11-12
+- name: nyt_athletic_handbrake_off_fc_s_arsenal_show
+  url: https://feeds.acast.com/public/shows/681887451d28d623139a0fc9
+  # Handbrake Off: The Athletic FC's Arsenal show — The Athletic; latest 2026-11-09
+- name: nyt_athletic_straight_outta_cobham_fc_s_chelsea_show
+  url: https://feeds.acast.com/public/shows/681ccb505acb8b715f1f1330
+  # Straight Outta Cobham: The Athletic FC's Chelsea show — The Athletic; latest 2026-11-09
+- name: nyt_athletic_the_leaf_report
+  url: https://feeds.acast.com/public/shows/6818a394f30c20bff73527a1
+  # The Leaf Report: A show about the Toronto Maple Leafs — The Athletic; latest 2026-11-09
+- name: nyt_athletic_12_questions
+  url: https://feeds.acast.com/public/shows/6852f25b259ce49e3e856825
+  # 12 Questions — The Athletic; latest 2026-11-06
+- name: nyt_metro_with_sarah_koenig
+  url: https://feeds.simplecast.com/R9ZBMPFj
+  # METRO with Sarah Koenig — Serial Productions & The New York Times; latest 2026-11-05
+- name: nyt_athletic_fc_daily_cup
+  url: https://feeds.acast.com/public/shows/6a213d9be25fe33c7c33e378
+  # The Athletic FC: Daily Cup — The Athletic; latest 2026-07-20
+- name: nyt_athletic_no_free_lunch_with_ndamukong_suh
+  url: https://feeds.acast.com/public/shows/6838b07b998551779f336971
+  # No Free Lunch with Ndamukong Suh — The Athletic; latest 2026-06-30
+- name: nyt_athletic_fc_presents
+  url: https://feeds.acast.com/public/shows/68374afd998551779fb67f1a
+  # The Athletic FC Presents... — The Athletic; latest 2026-06-24
+- name: nyt_athletic_front_nationwide
+  url: https://feeds.acast.com/public/shows/6838a0fb9bd0275f2cbfb6f4
+  # Front & Nationwide: A show about the Columbus Blue Jackets — The Athletic; latest 2026-05-15
+- name: nyt_athletic_the_buffalo_beat
+  url: https://feeds.acast.com/public/shows/6837462e2780b226c7bc9fe5
+  # The Buffalo Beat: A show about the Buffalo Bills — The Athletic; latest 2026-05-01
+- name: nyt_athletic_scoop_city_inside_the_nfl
+  url: https://feeds.acast.com/public/shows/6818bda3f30c20bff73d3241
+  # Scoop City: Inside The NFL — The Athletic; latest 2026-03-05
+- name: nyt_athletic_the_windup
+  url: https://feeds.acast.com/public/shows/6818ceb0eb146d8e35d36017
+  # The Windup: A show about Baseball — The Athletic; latest 2025-12-31
+- name: nyt_athletic_until_saturday
+  url: https://feeds.acast.com/public/shows/685c4945e36cea9c16ba1e87
+  # Until Saturday: A show about college football — The Athletic; latest 2025-03-12
+- name: nyt_athletic_wide_right
+  url: https://feeds.acast.com/public/shows/683754de9bd0275f2c4ba86f
+  # Wide Right: A show about the Miami Hurricanes — The Athletic; latest 2025-01-09
+- name: nyt_athletic_the_playcallers
+  url: https://feeds.acast.com/public/shows/683746d02780b226c7bcc103
+  # The Playcallers — The Athletic; latest 2024-11-05
+- name: nyt_athletic_about_them_cowboys
+  url: https://feeds.acast.com/public/shows/683758ac6e5b65d7875ac620
+  # About Them Cowboys: a show about the Dallas Cowboys — The Athletic; latest 2024-09-06
+- name: nyt_athletic_one_percent_better
+  url: https://feeds.acast.com/public/shows/68375cdc7b483718e063d4f3
+  # One Percent Better: A show about the Indianapolis Colts — The Athletic; latest 2024-08-21
+- name: nyt_athletic_can_t_wait
+  url: https://feeds.acast.com/public/shows/68389ad2998551779f2c7811
+  # Can't Wait: A show about the New York Jets — The Athletic; latest 2024-08-20
+- name: nyt_athletic_civilized_barking
+  url: https://feeds.acast.com/public/shows/6838bb01964166a365d17110
+  # Civilized Barking: A show about the Cleveland Browns — The Athletic; latest 2024-06-26
+- name: nyt_athletic_state_of_the_nation
+  url: https://feeds.acast.com/public/shows/6838b2a59bd0275f2cc49cf8
+  # State of the Nation: A show about the Las Vegas Raiders — The Athletic; latest 2024-04-23
+- name: nyt_athletic_11_personnel
+  url: https://feeds.acast.com/public/shows/6838b33f5b56407fa4a8fd2e
+  # 11 Personnel: A show about the Los Angeles Rams — The Athletic; latest 2024-04-08
+- name: nyt_athletic_a_king_s_reign
+  url: https://feeds.acast.com/public/shows/6838a0835b56407fa4a33ce0
+  # A King's Reign: A podcast series about LeBron James' career, life and impact — The Athletic; latest 2024-04-05
+- name: nyt_athletic_hear_that_growlin
+  url: https://feeds.acast.com/public/shows/68374e7f9bd0275f2c49845e
+  # Hear That Podcast Growlin': A show about the Cincinnati Bengals — The Athletic; latest 2024-02-29
+- name: nyt_athletic_here_s_the_catch
+  url: https://feeds.acast.com/public/shows/6838b38d9bd0275f2cc4e0fa
+  # Here's the Catch: A show about the San Francisco 49ers — Matt Barrows, The Athletic, Dennis Brown, David Lombardi; latest 2024-02-01
+- name: nyt_athletic_fantasy_football
+  url: https://feeds.acast.com/public/shows/68375e632780b226c7c58a61
+  # The Athletic Fantasy Football Podcast — The Athletic; latest 2024-01-04
+- name: nyt_athletic_straight_from_the_source_with_michael_ru
+  url: https://feeds.acast.com/public/shows/681cc73dbdc60241406b0240
+  # Straight From The Source with Michael Russo: A show about the Minnesota Wild — The Athletic; latest 2023-12-27
+- name: nyt_athletic_the_keith_law_show
+  url: https://feeds.acast.com/public/shows/6838a1f9998551779f2ed473
+  # The Keith Law Show — The Athletic; latest 2023-11-30
+- name: nyt_athletic_onto_waveland
+  url: https://feeds.acast.com/public/shows/6838b3db964166a365cf36a4
+  # Onto Waveland: A show about the Chicago Cubs — The Athletic; latest 2023-11-14
+- name: nyt_athletic_the_shamrock
+  url: https://feeds.acast.com/public/shows/683898d9998551779f2becdf
+  # The Shamrock: A show about the Notre Dame Fighting Irish — The Athletic; latest 2023-11-03
+- name: nyt_athletic_755_is_real
+  url: https://feeds.acast.com/public/shows/683751e49bd0275f2c4a9ebd
+  # 755 Is Real: A show about the Atlanta Braves — The Athletic; latest 2023-10-13
+- name: nyt_athletic_for_our_sins_the_cliches_pod_archive
+  url: https://feeds.acast.com/public/shows/683740806e5b65d787520c15
+  # For Our Sins: The Clichés Pod Archive — The Athletic; latest 2023-10-12
+- name: nyt_athletic_baggs_brisbee
+  url: https://feeds.acast.com/public/shows/683759399bd0275f2c4d294d
+  # Baggs & Brisbee: A show about the San Francisco Giants — The Athletic; latest 2023-10-05
+- name: nyt_athletic_anything_is_poddable
+  url: https://feeds.acast.com/public/shows/683756942780b226c7c2562b
+  # Anything is Poddable: A Podcast about the Boston Celtics — The Athletic; latest 2023-09-29
+- name: nyt_athletic_laz_and_powers
+  url: https://feeds.acast.com/public/shows/6838a1dc2780b226c732a3b8
+  # Laz and Powers: A show about the Chicago Blackhawks — The Athletic; latest 2023-09-25
+- name: nyt_athletic_birds_with_friends
+  url: https://feeds.acast.com/public/shows/6837477f7b483718e05bd2a8
+  # Birds With Friends: A show about the Philadelphia Eagles — The Athletic; latest 2023-09-11
+- name: nyt_athletic_time_s_ours
+  url: https://feeds.acast.com/public/shows/6837584d998551779fbb6be4
+  # Time's Ours: A show about the Kansas City Chiefs — The Athletic; latest 2023-08-17
+- name: nyt_athletic_77_minutes
+  url: https://feeds.acast.com/public/shows/6838b47b2780b226c7381f44
+  # 77 Minutes: A Podcast About the Dallas Mavericks — The Athletic; latest 2023-08-15
+- name: nyt_athletic_the_making_of_messi
+  url: https://feeds.acast.com/public/shows/683753296e5b65d787583ad5
+  # The Making of Messi — The Athletic; latest 2023-07-24
+- name: nyt_athletic_head_of_the_pack
+  url: https://feeds.acast.com/public/shows/6838b2f95b56407fa4a8eac5
+  # Head of the Pack: a show about the Green Bay Packers — The Athletic; latest 2023-06-16
+- name: nyt_athletic_why_always_us
+  url: https://feeds.acast.com/public/shows/68375d687b483718e06405de
+  # Why Always Us? - A show about Manchester City — The Athletic; latest 2023-06-06
+- name: nyt_athletic_the_phil_hay_show
+  url: https://feeds.acast.com/public/shows/68374e557b483718e05e0336
+  # The Phil Hay Show - A show about Leeds United — The Athletic; latest 2023-06-01
+- name: nyt_athletic_soccer_show
+  url: https://feeds.acast.com/public/shows/6859ad3b1776394d1300c09c
+  # The Athletic Soccer Show — The Athletic; latest 2023-03-30
+- name: nyt_athletic_fpl
+  url: https://feeds.acast.com/public/shows/683750c96e5b65d787575771
+  # The Athletic FPL Podcast — The Athletic; latest 2023-03-16
+- name: nyt_athletic_fantasy_baseball
+  url: https://feeds.acast.com/public/shows/68389ebf964166a365c8cca5
+  # The Athletic Fantasy Baseball Podcast — The Athletic; latest 2023-01-31
+- name: nyt_athletic_away_from_home
+  url: https://feeds.acast.com/public/shows/68389b73964166a365c7dcee
+  # Away From Home — The Athletic; latest 2022-11-14
+- name: nyt_athletic_the_beat_with_brendan_quinn_and_nick_bau
+  url: https://feeds.acast.com/public/shows/6838c68f5b56407fa4af494b
+  # The Beat with Brendan Quinn and Nick Baumgardner: A show about Michigan college sports — The Athletic; latest 2022-09-06
+- name: nyt_athletic_4_to_6_with_a_b
+  url: https://feeds.acast.com/public/shows/68375acc9bd0275f2c4df73f
+  # 4 to 6 with A&B: A show about the Ohio State Buckeyes — The Athletic; latest 2022-07-29
+- name: nyt_athletic_luck
+  url: https://feeds.acast.com/public/shows/68374b937b483718e05d0391
+  # Luck — The Athletic; latest 2022-07-26
+- name: nyt_athletic_the_forum_club
+  url: https://feeds.acast.com/public/shows/6838c418b2e4c2434bb6f00e
+  # The Forum Club: A Show About The Los Angeles Lakers — The Athletic; latest 2022-06-03
+- name: nyt_athletic_game_notes
+  url: https://feeds.acast.com/public/shows/6838d9ac5b56407fa4b71a95
+  # Game Notes: A Show About The Utah Jazz — The Athletic; latest 2022-06-02
+- name: nyt_athletic_1874
+  url: https://feeds.acast.com/public/shows/67f92547b51a627d15bf7577
+  # 1874 - A show about Aston Villa — The Athletic; latest 2022-05-25
+- name: nyt_athletic_prospects_to_pros_with_dane_brugler_lanc
+  url: https://feeds.acast.com/public/shows/6838c1c65b56407fa4adb43f
+  # Prospects To Pros with Dane Brugler & Lance Zierlein - a show about the NFL Draft — The Athletic; latest 2022-01-19
+- name: nyt_athletic_mls_assist_tactical_analysis_of_major_le
+  url: https://feeds.acast.com/public/shows/6838b42c9bd0275f2cc50e49
+  # MLS Assist — tactical analysis of Major League Soccer — The Athletic; latest 2022-01-10
+- name: nyt_athletic_golazzo_the_totally_italian_football_sho
+  url: https://feeds.acast.com/public/shows/683741916e5b65d787526347
+  # Golazzo: The Totally Italian Football Show — The Athletic; latest 2021-10-26
+- name: nyt_athletic_the_nba_daily_ding
+  url: https://feeds.acast.com/public/shows/683749647b483718e05c64a5
+  # The NBA Daily Ding — The Athletic; latest 2021-10-15
+- name: nyt_athletic_wizards_after_dark_a_washington_wizards
+  url: https://feeds.acast.com/public/shows/6838bae7964166a365d165a0
+  # Wizards After Dark: A Washington Wizards Podcast — The Athletic; latest 2021-09-22
+- name: nyt_athletic_the_football_gm
+  url: https://feeds.acast.com/public/shows/68389b47964166a365c7c8c4
+  # The Football GM: A show about the NFL — The Athletic; latest 2021-08-21
+- name: nyt_athletic_football_grits_a_daily_about_sec_footbal
+  url: https://feeds.acast.com/public/shows/6838a1c75b56407fa4a39e86
+  # Football & Grits: A daily podcast about SEC football — The Athletic; latest 2021-08-09
+- name: nyt_athletic_shattered_hope_heartbreak_and_the_new_yo
+  url: https://feeds.acast.com/public/shows/683750417b483718e05e9deb
+  # Shattered: Hope, Heartbreak and the New York Knicks — The Athletic; latest 2021-05-25
+- name: nyt_athletic_steilcast
+  url: https://feeds.acast.com/public/shows/6838b23b9bd0275f2cc47a43
+  # Steilcast - A show about the Bundesliga & German football — The Athletic; latest 2021-05-24
+- name: nyt_athletic_starkville_with_jayson_stark_and_doug_gl
+  url: https://feeds.acast.com/public/shows/6838b594964166a365cfde8f
+  # Starkville with Jayson Stark and Doug Glanville — The Athletic; latest 2021-03-25
+- name: nyt_athletic_football_bedtime_stories
+  url: https://feeds.acast.com/public/shows/6838bb5a2780b226c73a074a
+  # Football Bedtime Stories — The Athletic; latest 2021-02-24
+- name: nyt_athletic_two_man_advantage_w_burnside_lebrun
+  url: https://feeds.acast.com/public/shows/6838c66a2780b226c73e507f
+  # Two-Man Advantage w/ Burnside & LeBrun - A Show on the NHL — The Athletic; latest 2021-01-13
+- name: nyt_athletic_brodie_and_the_beard
+  url: https://feeds.acast.com/public/shows/6838d4ee2780b226c74356da
+  # Brodie and The Beard: A Show About The Houston Rockets — The Athletic; latest 2020-12-05
+- name: nyt_athletic_olde_towne
+  url: https://feeds.acast.com/public/shows/68395ba1998551779f683b37
+  # Olde Towne: A show about the Boston Red Sox — The Athletic; latest 2020-11-06
+- name: nyt_athletic_section_422
+  url: https://feeds.acast.com/public/shows/6838d743b2e4c2434bbd6f6e
+  # Section 422: A show about the Milwaukee Brewers — The Athletic; latest 2020-10-12
+- name: nyt_athletic_hoops_adjacent_with_david_aldridge_and_b
+  url: https://feeds.acast.com/public/shows/6838d1fa5b56407fa4b319d2
+  # Hoops, Adjacent with David Aldridge and BIG Wos — The Athletic; latest 2020-07-09
+- name: nyt_athletic_mile_high_magic
+  url: https://feeds.acast.com/public/shows/6838e72e5b56407fa4bdcae5
+  # Mile High Magic: A show about the Denver Broncos — The Athletic; latest 2020-07-01
+- name: nyt_athletic_green_white_noise
+  url: https://feeds.acast.com/public/shows/6838d9da998551779f431a44
+  # Green & White Noise: A show about the Michigan State Spartans — The Athletic; latest 2020-06-22
+- name: nyt_athletic_pod_for_life
+  url: https://feeds.acast.com/public/shows/68391feb998551779f58f9dd
+  # Pod for Life: A show about Tennessee football — The Athletic; latest 2020-06-22
+- name: nyt_athletic_the_sellouts
+  url: https://feeds.acast.com/public/shows/6838dd61964166a365df1c88
+  # The Sellouts: A show about the Nebraska Cornhuskers — The Athletic; latest 2020-06-04
+- name: nyt_athletic_straight_cash
+  url: https://feeds.acast.com/public/shows/6838e7782780b226c74bc94c
+  # Straight Cash: A show about the Minnesota Vikings — The Athletic; latest 2020-06-02
+- name: nyt_athletic_2nd_and_26
+  url: https://feeds.acast.com/public/shows/6839201d998551779f590e50
+  # 2nd and 26: A show about the Alabama Crimson Tide — The Athletic; latest 2020-05-29
+- name: nyt_athletic_formerly_warriors_plus_minus
+  url: https://feeds.acast.com/public/shows/6838e484998551779f47a560
+  # Formerly Warriors Plus Minus — The Athletic; latest 2020-05-27
+- name: nyt_athletic_it_never_rains
+  url: https://feeds.acast.com/public/shows/6838e4992780b226c74a82ad
+  # It Never Rains: A show about the Oregon Ducks — The Athletic; latest 2020-05-20
+- name: nyt_athletic_the_new_york_football
+  url: https://feeds.acast.com/public/shows/6838e746998551779f491c53
+  # The New York Football Podcast: A show about the New York Giants — The Athletic; latest 2020-05-18
+- name: nyt_athletic_the_immaculate
+  url: https://feeds.acast.com/public/shows/6838e21bb2e4c2434bc2a304
+  # The Immaculate Podcast: A show about the Pittsburgh Steelers — The Athletic; latest 2020-05-11
+- name: nyt_athletic_the_razor_show
+  url: https://feeds.acast.com/public/shows/6838e4b6b2e4c2434bc3def8
+  # The Razor Show: A show about the New England Patriots — The Athletic; latest 2020-01-08
+- name: nyt_the_caucus
+  url: https://podcasts.nytimes.com/services/xml/rss/nyt/podcasts/politicalpoints.xml
+  # The Caucus — The New York Times; latest 2011-12-22
+- name: nyt_opcast
+  url: https://podcasts.nytimes.com/services/xml/rss/nyt/podcasts/oped.xml
+  # OpCast — The New York Times; latest 2008-08-22
+- name: nyt_really
+  url: https://podcasts.nytimes.com/services/xml/rss/nyt/podcasts/really.xml
+  # Really — The New York Times; latest 2008-02-20
+- name: nyt_restaurant_update
+  url: https://podcasts.nytimes.com/services/xml/rss/nyt/podcasts/restupdate.xml
+  # Restaurant Update — The New York Times; latest 2007-05-10
+- name: nyt_theater_update
+  url: https://podcasts.nytimes.com/services/xml/rss/nyt/podcasts/theaterupdate.xml
+  # Theater Update — The New York Times; latest 2007-05-10
+- name: nyt_sports_update
+  url: https://podcasts.nytimes.com/services/xml/rss/nyt/podcasts/sportsupdate.xml
+  # Sports Update — The New York Times; latest 2007-05-08
+- name: nyt_nyt_advertising_spotlight
+  url: https://podcasts.nytimes.com/services/xml/rss/nyt/podcasts/inadvertising.xml
+  # NYT: Advertising Spotlight — The New York Times; latest 2006-12-11
 
 npr:
 # The NPR universe, checked 2026-10-07 (every feed fetched and parsed with QDRSS's own parser):
