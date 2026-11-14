@@ -38,3 +38,14 @@ def test_npr_landing_page(tmp_path):
         assert b"NPR podcasts by topic" in page.content
         assert b"collection: 'npr'" in page.content
         assert client.get("/nyt").status_code == 200
+
+
+def test_nytnews_collection():
+    news = [s for s in load_sources(MANIFEST) if s.collection == "nytnews"]
+    assert len(news) >= 90
+    assert all(s.name.startswith("nytnews_") for s in news)
+    assert len({s.url for s in news}) == len(news)
+    names = {s.name for s in news}
+    # scripts/backfill_nyt_news.py files archive articles under these by section.
+    for section in ("nytnews_world", "nytnews_politics", "nytnews_business", "nytnews_athletic_nfl"):
+        assert section in names

@@ -199,3 +199,16 @@ async def test_the_boost_widens_the_pool_and_the_feed_url_carries_it(store: Stor
         await evaluate(FeedRequest("rust", None, 10, "relevant", None, fresh), Spy(), HashEmbeddings(), KeywordRanker(), **OPTS)
     assert asked == [OPTS["candidate_count"], OPTS["candidate_count"] * 3]
     assert "fresh=180" in ET.fromstring(render_rss(FeedRequest("rust", None, 10, "relevant", None, 180.0), [], "http://x")).find("channel/link").text
+
+
+async def test_one_result_per_url_across_sources(store: Store):
+    # The same article in a section feed and the home-page feed is two sources' items with one URL.
+    from dataclasses import replace
+    a = make_item("a", "rust release", "rust", source="world")
+    await store.insert_missing([a, replace(make_item("a", "rust release", "rust", source="home"), url=a.url),
+                                make_item("b", "rust notes", "rust", source="home")])
+    index = await build_index(store, HashEmbeddings())
+    req = FeedRequest("rust", since=None, limit=10, threshold="relevant")
+    matches = await evaluate(req, index, HashEmbeddings(), KeywordRanker(), **OPTS)
+    urls = [m.item.url for m in matches]
+    assert len(urls) == len(set(urls)) == 2
