@@ -96,6 +96,12 @@ class Store:
         rows = self.db.execute("SELECT * FROM items ORDER BY ingested_at, id").fetchall()
         return [_row_item(row) for row in rows]
 
+    def iter_items(self, batch: int = 2000):
+        """All items in batches, for corpora too large to hold at once (a migration of half a million)."""
+        cursor = self.db.execute("SELECT * FROM items ORDER BY rowid")
+        while rows := cursor.fetchmany(batch):
+            yield [_row_item(row) for row in rows]
+
     async def count(self) -> int:
         return self.db.execute("SELECT COUNT(*) FROM items").fetchone()[0]
 
