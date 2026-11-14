@@ -46,6 +46,10 @@ CREATE TABLE IF NOT EXISTS embeddings (
 """
 
 
+
+class StoreUnavailable(RuntimeError):
+    """The store kept refusing a write (throttled or failing) past every retry."""
+
 class Store:
     def __init__(self, path: Path | str):
         self.path = Path(path)

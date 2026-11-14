@@ -22,6 +22,7 @@ from azure.cosmos import PartitionKey, exceptions
 from azure.cosmos.aio import CosmosClient
 
 from .models import Candidate, Item
+from .store import StoreUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ async def _write(op, *args, **kwargs):
                 raise
             wait = float((exc.headers or {}).get("x-ms-retry-after-ms", 1000)) / 1000
             await asyncio.sleep(min(max(wait, 0.5) * (1 + attempt / 4), 30))
-    raise RuntimeError("Cosmos kept failing for 40 attempts")
+    raise StoreUnavailable("Cosmos kept failing for 40 attempts")
 
 VECTOR_POLICY = {
     "vectorEmbeddings": [

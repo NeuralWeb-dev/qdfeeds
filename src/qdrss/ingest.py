@@ -21,7 +21,7 @@ import yaml
 
 from . import tal
 from .feeds import FeedError, next_page, parse_feed
-from .store import Store
+from .store import Store, StoreUnavailable
 
 StoreLike = Store  # any object with the async Store interface (see cosmos.CosmosStore)
 
@@ -99,10 +99,22 @@ async def refresh(
     )
     limit = asyncio.Semaphore(concurrency)
     try:
-        return list(await asyncio.gather(*(_fetch_one(s, store, client, limit) for s in sources)))
+        return list(await asyncio.gather(*(_fetch_isolated(s, store, client, limit) for s in sources)))
     finally:
         if owned:
             await client.aclose()
+
+
+async def _fetch_isolated(
+    source: Source, store: Store, client: httpx.AsyncClient, limit: asyncio.Semaphore
+) -> Outcome:
+    """One source whose writes the store keeps refusing fails alone, not the whole crawl. Its
+    validators are not updated, so the next run fetches it again and stores what was missed."""
+    try:
+        return await _fetch_one(source, store, client, limit)
+    except StoreUnavailable as exc:
+        logger.warning("%s: %s; retried next run", source.name, exc)
+        return Outcome(source, error=str(exc))
 
 
 async def _fetch_one(
