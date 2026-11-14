@@ -188,9 +188,14 @@ class CosmosStore:
         if sources is not None:
             clauses.append("ARRAY_CONTAINS(@sources, c.source)")
             params.append({"name": "@sources", "value": sorted(sources)})
-        if collections is not None:
-            clauses.append("ARRAY_CONTAINS(@collections, c.collection)")
-            params.append({"name": "@collections", "value": sorted(collections)})
+        if collections is not None and not collection:
+            # One single-partition query per collection (the partition key), in parallel: a filtered
+            # vector query fanned out over every partition is an order of magnitude slower.
+            runs = await asyncio.gather(*(self.search(vector, since, name, limit, sources)
+                                          for name in sorted(collections)))
+            return sorted((c for run in runs for c in run), key=lambda c: -c.score)[:limit]
+        if collection and collections is not None and collection not in collections:
+            return []
         if collection:
             clauses.append("c.collection = @collection")
             params.append({"name": "@collection", "value": collection})
@@ -204,8 +209,11 @@ class CosmosStore:
         # With a collection the query is single-partition (collection is the
         # partition key). Without one it fans out across physical partitions,
         # each of which returns TOP k, so trim and dedupe client-side.
+        # A filtered vector query can return a continuation token larger than the 8 KB header
+        # limit of aiohttp (the SDK's transport), which then fails the response; cap it at 4 KB.
         rows = self._items.query_items(
-            query, parameters=params, partition_key=collection if collection else None
+            query, parameters=params, partition_key=collection if collection else None,
+            continuation_token_limit=4,
         )
         out: list[Candidate] = []
         seen: set[str] = set()
