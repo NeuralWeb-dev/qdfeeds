@@ -66,13 +66,10 @@ def test_select_sources_by_collection():
 def test_every_vertical_resolves_against_the_manifest():
     from qdrss.verticals import VERTICALS, resolve
     sources = load_sources(MANIFEST)
-    for vertical in VERTICALS:
-        if vertical.nlweb_url:
-            continue
-        names = resolve(vertical, sources, strict=True)
-        assert names, vertical.id
-    by = {v.id: resolve(v, sources) for v in VERTICALS if not v.nlweb_url}
-    assert by["travel"] == {"nytnews_travel"}
-    assert {"nytnews_athletic_nfl", "nyt_athletic_hockey_show", "athletic_fc", "nytnews_baseball"} <= by["athletic"]
-    assert by["audio"] == {s.name for s in sources if s.collection == "nytimes"}
-    assert by["us"] <= by["all"] and by["opinion"] <= by["all"]
+    scopes = {v.id: resolve(v, sources, strict=True) for v in VERTICALS if not v.nlweb_url}
+    for vid, scope in scopes.items():
+        assert scope.sources or scope.collections, vid
+    assert scopes["travel"].sources == {"nytnews_travel"}
+    assert {"nytnews_athletic_nfl", "nyt_athletic_hockey_show", "athletic_fc", "nytnews_baseball"} <= scopes["athletic"].sources
+    assert scopes["audio"].collections == {"nytimes"}
+    assert scopes["all"].collections == {"nytnews", "nytimes"}

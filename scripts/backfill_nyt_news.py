@@ -53,8 +53,9 @@ FALLBACK_TITLE = "New York Times (archive)"
 SPACING = 12.5  # seconds between uncached calls: the free tier allows 5 a minute
 FIELDS = ("web_url", "headline", "abstract", "lead_paragraph", "pub_date", "type_of_material")
 SKIP_MATERIAL = {"correction", "paid death notice"}
-# Podcast pages (the nytimes collection has them), puzzle companions and the daily corrections list.
-SKIP_PATHS = ("/podcasts/", "/crosswords/", "/pageoneplus/")
+# Podcast pages (the nytimes collection has them), puzzle companions, the daily corrections list and
+# index pages (Today's Paper, admin).
+SKIP_PATHS = ("/podcasts/", "/crosswords/", "/pageoneplus/", "/todayspaper/", "/corrections/", "/admin/")
 
 # URL path after the date -> source, longest prefix first.
 SECTIONS: dict[str, str] = {
@@ -117,6 +118,12 @@ SECTIONS: dict[str, str] = {
     "opinion": "nytnews_opinion",
     "books": "nytnews_books",
     "magazine": "nytnews_magazine",
+    "lens": "nytnews_lens",
+    "sunday-review": "nytnews_sundayreview",
+    "smarter-living": "nytnews_well",
+    "parenting": "nytnews_well",
+    "at-home": "nytnews_well",
+    "watching": "nytnews_television",
 }
 # Articles are /YYYY/MM/DD/<section>/[<subsection>/]<slug>; live-blog posts and interactives put
 # live/ or interactive/ first, and a live post adds the blog's own slug after the section.
@@ -246,7 +253,8 @@ async def main() -> None:
         added = 0
         by_source: dict[str, int] = {}
         for year, month in month_range(args.start, args.end):
-            items = [item for doc in fetch_month(year, month, key) if (item := to_item(doc, titles))]
+            # wanted() again: a month cached before a filter was added still holds what it drops.
+            items = [item for doc in fetch_month(year, month, key) if wanted(doc) and (item := to_item(doc, titles))]
             for item in items:
                 by_source[item.source] = by_source.get(item.source, 0) + 1
             stored = await services.store.insert_missing(items) if items else 0

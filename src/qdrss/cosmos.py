@@ -175,6 +175,7 @@ class CosmosStore:
         collection: str | None,
         limit: int,
         sources: frozenset[str] | None = None,
+        collections: frozenset[str] | None = None,
     ) -> list[Candidate]:
         clauses = ["IS_DEFINED(c.embedding)"]
         params: list[dict[str, Any]] = [
@@ -187,6 +188,9 @@ class CosmosStore:
         if sources is not None:
             clauses.append("ARRAY_CONTAINS(@sources, c.source)")
             params.append({"name": "@sources", "value": sorted(sources)})
+        if collections is not None:
+            clauses.append("ARRAY_CONTAINS(@collections, c.collection)")
+            params.append({"name": "@collections", "value": sorted(collections)})
         if collection:
             clauses.append("c.collection = @collection")
             params.append({"name": "@collection", "value": collection})

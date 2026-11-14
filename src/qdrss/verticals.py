@@ -1,11 +1,12 @@
-"""The NYT search page's tabs: each vertical is a set of sources, or an NLWeb backend.
+"""The NYT search page's tabs: each vertical is a set of collections, a set of sources, or an
+NLWeb backend.
 
-A qdrss vertical searches only its sources, which is the strongest bias there is: a
-Travel search returns Travel articles. Sources are named by selectors resolved against
-the manifest: `collection:<name>` (every source of a collection), a glob over source
-names (`nytnews_athletic_*`), or an exact name. Names that only the archive backfill
-creates (scripts/backfill_nyt_news.py files a section with no feed under
-nytnews_archive_<section>) are listed in ARCHIVE_ONLY so selectors can reach them.
+A qdrss vertical searches only its scope, which is the strongest bias there is: a Travel
+search returns Travel articles. A scope is either whole collections (All, Audio), which
+also reaches the archive-only sources scripts/backfill_nyt_news.py creates for sections
+with no feed (nytnews_archive_<section>), or sources named by selectors resolved against
+the manifest: a glob over source names (`nytnews_athletic_*`) or an exact name. The few
+archive-only names a selector uses are in ARCHIVE_SOURCES.
 
 Cooking and Wirecutter are NLWeb sites (nlweb-samples on Cloud Run): their recipes and
 reviews are not RSS, so the page asks those backends directly through /api/search.
@@ -18,8 +19,7 @@ from dataclasses import dataclass
 
 from .ingest import Source
 
-ARCHIVE_ONLY = ("nytnews_archive", "nytnews_archive_learning", "nytnews_archive_briefing",
-                "nytnews_archive_insider", "nytnews_archive_espanol", "nytnews_archive_sports")
+ARCHIVE_SOURCES = ("nytnews_archive_sports",)  # NYT sports desks with no feed of their own
 
 NYT_SPORTS = ["nytnews_baseball", "nytnews_collegebasketball", "nytnews_collegefootball", "nytnews_golf",
               "nytnews_hockey", "nytnews_probasketball", "nytnews_profootball", "nytnews_soccer",
@@ -31,13 +31,14 @@ class Vertical:
     id: str
     label: str
     selectors: tuple[str, ...] = ()
+    collections: tuple[str, ...] = ()  # instead of selectors: every item of these collections
     nlweb_url: str = ""  # an NLWeb /ask endpoint instead of qdrss sources
     nlweb_site: str = ""
     examples: tuple[str, ...] = ()
 
 
 VERTICALS: tuple[Vertical, ...] = (
-    Vertical("all", "All", ("collection:nytnews", "collection:nytimes", *ARCHIVE_ONLY),
+    Vertical("all", "All", collections=("nytnews", "nytimes"),
              examples=("How tariffs are changing what Americans pay", "The race to build A.I. data centers")),
     Vertical("us", "U.S.", ("nytnews_us", "nytnews_politics", "nytnews_nyregion", "nytnews_education",
                             "nytnews_upshot", "nytnews_weather", "nytnews_obituaries", "nytnews_science",
@@ -64,7 +65,7 @@ VERTICALS: tuple[Vertical, ...] = (
                                     "nyt_interesting_times", "nyt_the_opinions", "nyt_matter_of_opinion",
                                     "nyt_the_argument", "nyt_sway", "nyt_the_choice"),
              examples=("The case for and against a wealth tax", "What liberals get wrong about immigration")),
-    Vertical("audio", "Audio", ("collection:nytimes",),
+    Vertical("audio", "Audio", collections=("nytimes",),
              examples=("The Supreme Court and presidential power", "Taylor Swift")),
     Vertical("cooking", "Cooking", nlweb_url="https://nlweb-recipes-3zepccvmbq-uc.a.run.app/ask",
              nlweb_site="nytimes",
@@ -78,19 +79,28 @@ VERTICALS: tuple[Vertical, ...] = (
 BY_ID = {v.id: v for v in VERTICALS}
 
 
-def resolve(vertical: Vertical, sources: list[Source], strict: bool = False) -> frozenset[str]:
-    """The source names a vertical searches. With strict, an exact name the manifest lacks is an
-    error (a typo would silently empty a tab); the shipped manifest is checked that way in the tests,
-    and the app resolves leniently so a test or partial manifest still starts."""
-    names = [s.name for s in sources] + list(ARCHIVE_ONLY)
+@dataclass(frozen=True)
+class Scope:
+    sources: frozenset[str] | None = None
+    collections: frozenset[str] | None = None
+
+
+def resolve(vertical: Vertical, sources: list[Source], strict: bool = False) -> Scope:
+    """What a vertical searches. With strict, a name the manifest lacks is an error (a typo would
+    silently empty a tab); the shipped manifest is checked that way in the tests, and the app
+    resolves leniently so a test or partial manifest still starts."""
+    if vertical.collections:
+        known = {s.collection for s in sources}
+        if strict and set(vertical.collections) - known:
+            raise ValueError(f"vertical {vertical.id}: no collection {sorted(set(vertical.collections) - known)}")
+        return Scope(collections=frozenset(vertical.collections))
+    names = [s.name for s in sources] + list(ARCHIVE_SOURCES)
     out: set[str] = set()
     for selector in vertical.selectors:
-        if selector.startswith("collection:"):
-            out |= {s.name for s in sources if s.collection == selector.removeprefix("collection:")}
-        elif any(ch in selector for ch in "*?["):
+        if any(ch in selector for ch in "*?["):
             out |= set(fnmatch.filter(names, selector))
         elif selector in names:
             out.add(selector)
         elif strict:
             raise ValueError(f"vertical {vertical.id}: no source {selector!r}")
-    return frozenset(out)
+    return Scope(sources=frozenset(out))

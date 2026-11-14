@@ -21,7 +21,7 @@ from .rank import classify
 class Retriever(Protocol):
     async def search(
         self, vector: np.ndarray, since: datetime | None, collection: str | None, limit: int,
-        sources: frozenset[str] | None = None,
+        sources: frozenset[str] | None = None, collections: frozenset[str] | None = None,
     ) -> list[Candidate]: ...
 
 NS = "https://qdrss.dev/ns"
@@ -52,6 +52,7 @@ class FeedRequest:
     collection: str | None = None  # manifest section; None = every source
     fresh: float = 0.0  # freshness boost: half-life in days of the preference for recent items; 0 = none
     sources: frozenset[str] | None = None  # only these sources (a vertical, see verticals.py); None = no limit
+    collections: frozenset[str] | None = None  # only these collections (a vertical); None = no limit
     vertical: str = ""  # the vertical the sources came from, for the feed's own link
 
 
@@ -72,7 +73,7 @@ async def evaluate(
     since = request.since or (now or datetime.now(UTC)) - timedelta(days=window_days)
     vector = await _query_vector(embedder, request.q)
     pool = candidate_count * FRESH_POOL if request.fresh else candidate_count
-    candidates = one_per_url(await retriever.search(vector, since, request.collection, pool, request.sources))
+    candidates = one_per_url(await retriever.search(vector, since, request.collection, pool, request.sources, request.collections))
     if request.fresh:
         candidates = freshen(candidates, request.fresh, candidate_count, now or datetime.now(UTC))
     matches = await classify(request.q, candidates, ranker, batch_size)

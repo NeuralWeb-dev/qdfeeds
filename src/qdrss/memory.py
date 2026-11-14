@@ -112,13 +112,13 @@ class MemoryRetriever:
             return len(fresh)
 
     async def search(self, vector: np.ndarray, since: datetime | None, collection: str | None, limit: int,
-                     sources: frozenset[str] | None = None) -> list[Candidate]:
+                     sources: frozenset[str] | None = None, collections: frozenset[str] | None = None) -> list[Candidate]:
         index = self.indexes.get(collection or "")
         if index is None:
-            return await self.cosmos.search(vector, since, collection, limit, sources)
+            return await self.cosmos.search(vector, since, collection, limit, sources, collections)
         if time.monotonic() - self._checked[collection] > self.catch_up_seconds and not self._busy[collection].locked():
             asyncio.create_task(self._safe_catch_up(collection))
-        return await index.search(vector, since, collection, limit, sources)
+        return await index.search(vector, since, collection, limit, sources, collections)
 
     async def _safe_catch_up(self, name: str) -> None:
         try:

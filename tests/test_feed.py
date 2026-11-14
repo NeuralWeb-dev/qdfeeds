@@ -192,7 +192,7 @@ def test_with_no_more_candidates_than_kept_nothing_changes():
 async def test_the_boost_widens_the_pool_and_the_feed_url_carries_it(store: Store):
     asked = []
     class Spy:
-        async def search(self, vector, since, collection, limit, sources=None):
+        async def search(self, vector, since, collection, limit, sources=None, collections=None):
             asked.append(limit)
             return []
     for fresh in (0.0, 180.0):
@@ -222,3 +222,14 @@ async def test_sources_limit_the_candidates(store: Store):
     req = FeedRequest("rust compiler", since=None, limit=10, threshold="relevant", sources=frozenset({"travel"}))
     matches = await evaluate(req, index, HashEmbeddings(), KeywordRanker(), **OPTS)
     assert [m.item.source for m in matches] == ["travel"]
+
+
+async def test_collections_limit_the_candidates_and_use_the_items_own_collection(store: Store):
+    # An archive item's source is not in the manifest; its own collection still places it.
+    from dataclasses import replace
+    await store.insert_missing([replace(make_item("a", "rust compiler", "rust", source="nytnews_archive_x"), collection="nytnews"),
+                                replace(make_item("b", "rust compiler rust", "rust", source="other"), collection="npr")])
+    index = await build_index(store, HashEmbeddings())
+    req = FeedRequest("rust compiler", since=None, limit=10, threshold="relevant", collections=frozenset({"nytnews"}))
+    matches = await evaluate(req, index, HashEmbeddings(), KeywordRanker(), **OPTS)
+    assert [m.item.source for m in matches] == ["nytnews_archive_x"]
