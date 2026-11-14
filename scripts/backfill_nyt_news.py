@@ -5,9 +5,9 @@ API returns every article of a month, so one call per month recovers the history
 headline, summary, lead paragraph, date and link.
 
 - Each article is filed under the nytnews source of its section, from the URL path
-  (/2024/05/01/world/europe/... is nytnews_europe). A section with no feed (Opinion,
-  Books, Travel, the Magazine) gets an archive-only source, nytnews_archive_opinion,
-  titled "NYT > Opinion (archive)".
+  (/2024/05/01/world/europe/... is nytnews_europe). A section with no feed (Learning,
+  Briefing, Insider) gets an archive-only source, nytnews_archive_learning, titled
+  "NYT > Learning (archive)".
 - Left out: podcast pages (the nytimes collection has those), corrections, paid
   death notices, puzzle companions (Spelling Bee forum, Connections) and documents
   without a headline.
@@ -53,8 +53,9 @@ FALLBACK_TITLE = "New York Times (archive)"
 SPACING = 12.5  # seconds between uncached calls: the free tier allows 5 a minute
 FIELDS = ("web_url", "headline", "abstract", "lead_paragraph", "pub_date", "type_of_material")
 SKIP_MATERIAL = {"correction", "paid death notice"}
-# Podcast pages (the nytimes collection has them), puzzle companions and the daily corrections list.
-SKIP_PATHS = ("/podcasts/", "/crosswords/", "/pageoneplus/")
+# Podcast pages (the nytimes collection has them), puzzle companions, the daily corrections list and
+# index pages (Today's Paper, admin).
+SKIP_PATHS = ("/podcasts/", "/crosswords/", "/pageoneplus/", "/todayspaper/", "/corrections/", "/admin/")
 
 # URL path after the date -> source, longest prefix first.
 SECTIONS: dict[str, str] = {
@@ -113,6 +114,16 @@ SECTIONS: dict[str, str] = {
     "fashion": "nytnews_fashionandstyle",
     "dining": "nytnews_diningandwine",
     "t-magazine": "nytnews_tmagazine",
+    "travel": "nytnews_travel",
+    "opinion": "nytnews_opinion",
+    "books": "nytnews_books",
+    "magazine": "nytnews_magazine",
+    "lens": "nytnews_lens",
+    "sunday-review": "nytnews_sundayreview",
+    "smarter-living": "nytnews_well",
+    "parenting": "nytnews_well",
+    "at-home": "nytnews_well",
+    "watching": "nytnews_television",
 }
 # Articles are /YYYY/MM/DD/<section>/[<subsection>/]<slug>; live-blog posts and interactives put
 # live/ or interactive/ first, and a live post adds the blog's own slug after the section.
@@ -127,7 +138,7 @@ def source_for(url: str) -> str:
     for prefix in sorted(SECTIONS, key=len, reverse=True):
         if path == prefix or path.startswith(prefix + "/"):
             return SECTIONS[prefix]
-    # A section with no feed of its own (opinion, books, travel, magazine) is an archive-only source.
+    # A section with no feed of its own (learning, briefing, insider) is an archive-only source.
     section = re.sub(r"[^a-z0-9]+", "_", path.split("/")[0]).strip("_")
     return f"{FALLBACK}_{section}" if section else FALLBACK
 
@@ -220,10 +231,16 @@ async def main() -> None:
     parser.add_argument("--start", default=f"{now.year - 10}-{now.month:02d}")
     parser.add_argument("--end", default=last)
     parser.add_argument("--no-embed", action="store_true", help="store only; the next ingest embeds")
+    parser.add_argument("--fetch-only", action="store_true",
+                        help="fill the cache from the Archive API and stop; no store needed")
     args = parser.parse_args()
     load_dotenv()
     key = os.environ["NYT_API_KEY"]
     logging.basicConfig(level=logging.WARNING)
+    if args.fetch_only:
+        for year, month in month_range(args.start, args.end):
+            print(f"{year}-{month:02d}: {len(fetch_month(year, month, key)):5} articles cached", flush=True)
+        return
 
     titles = source_titles()
     missing = set(SECTIONS.values()) - set(titles)
@@ -236,7 +253,8 @@ async def main() -> None:
         added = 0
         by_source: dict[str, int] = {}
         for year, month in month_range(args.start, args.end):
-            items = [item for doc in fetch_month(year, month, key) if (item := to_item(doc, titles))]
+            # wanted() again: a month cached before a filter was added still holds what it drops.
+            items = [item for doc in fetch_month(year, month, key) if wanted(doc) and (item := to_item(doc, titles))]
             for item in items:
                 by_source[item.source] = by_source.get(item.source, 0) + 1
             stored = await services.store.insert_missing(items) if items else 0

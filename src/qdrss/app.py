@@ -10,6 +10,7 @@ import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlencode
 
 import numpy as np
 import uvicorn
@@ -21,16 +22,24 @@ from starlette.routing import Route
 # Pages change with each deploy; without this browsers reuse a stale copy.
 NO_CACHE = {"cache-control": "no-cache"}
 
+from . import nlweb
 from .activity import Activity, iso
 from .config import Config, load_config
 from .feed import FeedRequest, Retriever, evaluate, render_rss
 from .feeds import parse_date
 from .index import Index, build_index
-from .ingest import load_sources, refresh
+from .ingest import load_sources, refresh, select_sources
 from .providers import Embeddings, HashEmbeddings, KeywordRanker, OpenRouter, Ranker
 from .rank import RankingError
+from .verticals import BY_ID as VERTICALS
+from .verticals import resolve as resolve_vertical
 
 logger = logging.getLogger("qdrss")
+# The search page: everything since 2000 (archive items are stamped with their publication date), newer
+# items preferred with a half-life of 180 days, at most 20 results.
+SEARCH_SINCE = datetime(2000, 1, 1, tzinfo=UTC)
+SEARCH_FRESH = 180.0
+SEARCH_LIMIT = 20
 STATIC = Path(__file__).parent / "static"
 
 
@@ -50,6 +59,8 @@ class Services:
         self.activity = Activity()
         self.sources = load_sources(config.sources_path)
         self.collections = {s.name: s.collection for s in self.sources}
+        # Each search-page tab's scope (collections or sources), resolved once.
+        self.verticals = {v.id: resolve_vertical(v, self.sources) for v in VERTICALS.values() if not v.nlweb_url}
         self.cosmos = bool(config.cosmos_endpoint)
         if self.cosmos:
             from .cosmos import CosmosStore
@@ -261,14 +272,19 @@ def create_app(services: Services) -> Starlette:
         collection = params.get("collection", "").strip() or None
         if collection and collection not in services.collections.values():
             return PlainTextResponse(f"unknown collection {collection!r}", status_code=400)
+        vertical = params.get("vertical", "").strip()
+        if vertical and vertical not in services.verticals:
+            return PlainTextResponse(f"unknown vertical {vertical!r} (or one with no feed)", status_code=400)
         if services.ready_at is None:
             return PlainTextResponse("index not built yet", status_code=503)
 
-        feed_request = FeedRequest(q, since, limit, threshold, collection, fresh)
+        scope = services.verticals.get(vertical)
+        feed_request = FeedRequest(q, since, limit, threshold, collection, fresh,
+                                   scope.sources if scope else None, scope.collections if scope else None, vertical)
         base = str(request.base_url).rstrip("/")
         # since= makes the request time-specific, so only default-window fetches
         # are cached (those are what feed readers send).
-        key = (q, limit, threshold, collection, fresh, base) if since is None else None
+        key = (q, limit, threshold, collection, fresh, vertical, base) if since is None else None
         cached = services._feeds.get(key) if key else None
         if cached and time.monotonic() - cached[0] < services.feed_ttl:
             return _feed_response(request, cached[1], cached[2])
@@ -292,6 +308,64 @@ def create_app(services: Services) -> Starlette:
                 services._feeds.pop(next(iter(services._feeds)))
             services._feeds[key] = (time.monotonic(), body, etag)
         return _feed_response(request, body, etag)
+
+    async def search_api(request: Request) -> Response:
+        """One tab of the NYT search page as JSON: the archive and live feeds, newest first among the
+        matches with a preference for recent items, or an NLWeb backend for Cooking and Wirecutter."""
+        params = request.query_params
+        q = params.get("q", "").strip()[:300]
+        vertical = VERTICALS.get(params.get("vertical", "all"))
+        if not q or vertical is None:
+            return JSONResponse({"error": "q and a known vertical are required"}, status_code=400)
+        key = ("api", q, vertical.id)
+        cached = services._feeds.get(key)
+        if cached and time.monotonic() - cached[0] < services.feed_ttl:
+            return JSONResponse(cached[1])
+        base = str(request.base_url).rstrip("/")
+        if vertical.nlweb_url:
+            try:
+                rows = await nlweb.ask(vertical.nlweb_url, vertical.nlweb_site, q, SEARCH_LIMIT)
+                if not rows:  # these backends now and then answer "no results" to a query they answer the next time
+                    rows = await nlweb.ask(vertical.nlweb_url, vertical.nlweb_site, q, SEARCH_LIMIT)
+            except nlweb.NLWebError as exc:
+                logger.error("nlweb %s: %s", vertical.id, exc)
+                return JSONResponse({"error": f"{vertical.label} search is unavailable"}, status_code=503)
+            body = {"vertical": vertical.id, "results": rows, "feed": None}
+        else:
+            if services.ready_at is None:
+                return JSONResponse({"error": "index not built yet"}, status_code=503)
+            scope = services.verticals[vertical.id]
+            feed_request = FeedRequest(q, SEARCH_SINCE, SEARCH_LIMIT, "relevant", None, SEARCH_FRESH,
+                                       scope.sources, scope.collections, vertical.id)
+            try:
+                matches = await evaluate(
+                    feed_request, services.retriever, services.embedder, services.ranker,
+                    candidate_count=services.config.candidate_count, batch_size=services.config.batch_size,
+                    window_days=services.config.window_days,
+                )
+            except RankingError as exc:
+                logger.error("ranking failed: %s", exc)
+                return JSONResponse({"error": "ranking unavailable"}, status_code=503)
+            rows = [{
+                "title": m.item.title or m.item.url, "url": m.item.url, "summary": m.item.content[:400],
+                "why": m.why, "strong": m.category == "strong", "image": None,
+                "date": (m.item.published_at or m.item.ingested_at).isoformat(),
+                "source": m.item.source_title or m.item.source,
+            } for m in matches]
+            # The feed a reader (or an email digest) follows: new matches as they are published.
+            feed = f"{base}/feed.xml?" + urlencode({"q": q, "vertical": vertical.id})
+            body = {"vertical": vertical.id, "results": rows, "feed": feed}
+        if len(services._feeds) > 5000:
+            services._feeds.pop(next(iter(services._feeds)))
+        services._feeds[key] = (time.monotonic(), body, "")
+        return JSONResponse(body)
+
+    async def nyt_search(_: Request) -> Response:
+        return FileResponse(STATIC / "nyt-search.html", headers=NO_CACHE)
+
+    async def verticals(_: Request) -> Response:
+        return JSONResponse([{"id": v.id, "label": v.label, "examples": list(v.examples),
+                              "feed": not v.nlweb_url} for v in VERTICALS.values()])
 
     async def home(_: Request) -> Response:
         return FileResponse(STATIC / "index.html", headers=NO_CACHE)
@@ -353,6 +427,9 @@ def create_app(services: Services) -> Starlette:
         routes=[
             Route("/", home),
             Route("/nyt", nyt),
+            Route("/nyt/search", nyt_search),
+            Route("/api/search", search_api),
+            Route("/api/verticals", verticals),
             Route("/npr", npr),
             Route("/tal", tal_page),
             Route("/feed.xml", feed),
@@ -387,6 +464,8 @@ def ingest_main() -> None:
 
     async def run() -> None:
         services = build_services()
+        # QDRSS_INGEST_COLLECTIONS=nytnews fetches just those collections (an hourly job for news).
+        services.sources = select_sources(services.sources, os.environ.get("QDRSS_INGEST_COLLECTIONS", ""))
         await services.setup()
         try:
             await services.refresh_once()

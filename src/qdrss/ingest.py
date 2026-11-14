@@ -72,6 +72,20 @@ def load_sources(path: Path) -> list[Source]:
     return sources
 
 
+def select_sources(sources: list[Source], collections: str) -> list[Source]:
+    """The sources of the named collections ("nytnews,nytimes"); all of them when the list is empty.
+
+    A collection whose feeds roll over within a day (news sections keep their latest 20-60
+    articles) needs fetching more often than the daily refresh of everything."""
+    wanted = {c.strip() for c in collections.split(",") if c.strip()}
+    if not wanted:
+        return sources
+    unknown = wanted - {s.collection for s in sources}
+    if unknown:
+        raise ValueError(f"unknown collections {sorted(unknown)}")
+    return [s for s in sources if s.collection in wanted]
+
+
 async def refresh(
     sources: list[Source],
     store: Store,

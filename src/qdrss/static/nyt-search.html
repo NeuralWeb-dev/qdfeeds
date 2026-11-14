@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search the Times</title>
+<style>
+  :root { --fg: #1a1a1a; --muted: #666; --line: #e2e2e2; --bg: #fff; --panel: #f7f7f5; --accent: #0b5fff; --tag: #eef3ff; --ok: #0a7a3d; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #eee; --muted: #9a9a9a; --line: #2e2e2e; --bg: #111; --panel: #1a1a1a; --accent: #6ea0ff; --tag: #1d2a44; --ok: #5ccf8e; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--fg); background: var(--bg); }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 16px 64px; }
+  h1 { font: 600 28px/1.2 Georgia, "Times New Roman", serif; margin: 0 0 4px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 15px; max-width: 680px; }
+  form.ask { display: flex; gap: 8px; }
+  input[type=text], input[type=email] { flex: 1; min-width: 0; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  button { font: inherit; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent); }
+  button:disabled { opacity: .6; cursor: wait; }
+  nav.tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--line); margin: 8px 0 0; scrollbar-width: thin; }
+  nav.tabs button { flex: none; background: transparent; color: var(--muted); border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 12px; font-size: 14px; font-weight: 600; }
+  nav.tabs button[aria-selected=true] { color: var(--fg); border-bottom-color: var(--fg); }
+  .panel { padding-top: 16px; }
+  .panel .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chips button { background: var(--tag); color: var(--accent); border: 0; border-radius: 16px; padding: 4px 12px; font-size: 13px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 18px 0 0; padding: 10px 12px; background: var(--panel); border-radius: 8px; font-size: 14px; color: var(--muted); }
+  .bar .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .bar button { padding: 6px 12px; font-size: 14px; }
+  .status { margin-top: 16px; color: var(--muted); font-size: 14px; }
+  ol { list-style: none; padding: 0; margin: 8px 0 0; }
+  li { display: flex; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+  li:first-child { border-top: 0; }
+  li img { flex: none; width: 96px; height: 72px; object-fit: cover; border-radius: 6px; background: var(--panel); }
+  li .body { min-width: 0; }
+  li a { color: var(--fg); font: 600 18px/1.3 Georgia, "Times New Roman", serif; text-decoration: none; }
+  li a:hover { color: var(--accent); }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .summary { font-size: 15px; margin-top: 4px; overflow-wrap: anywhere; }
+  .why { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .strong { display: inline-block; font-size: 11px; font-weight: 600; color: var(--accent); background: var(--tag); border-radius: 4px; padding: 0 6px; margin-right: 6px; vertical-align: 1px; }
+  dialog { width: min(560px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: 12px; padding: 0; color: var(--fg); background: var(--bg); }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  dialog .in { padding: 20px; }
+  dialog h2 { margin: 0 0 4px; font-size: 19px; }
+  dialog p { margin: 6px 0; font-size: 14px; color: var(--muted); }
+  dialog form { display: grid; gap: 12px; margin-top: 12px; }
+  dialog .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  dialog label { font-size: 14px; display: flex; gap: 6px; align-items: center; }
+  .demo { font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4d6; border-radius: 4px; padding: 1px 6px; }
+  @media (prefers-color-scheme: dark) { .demo { color: #ffd27a; background: #3a2c08; } }
+  .mail { border: 1px solid var(--line); border-radius: 8px; margin-top: 12px; font-size: 14px; max-height: 300px; overflow: auto; }
+  .mail .hd { padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: 13px; }
+  .mail .it { padding: 8px 12px; border-top: 1px solid var(--line); }
+  .mail .it:first-of-type { border-top: 0; }
+  .mail .it b { display: block; color: var(--fg); }
+  .done { color: var(--ok); font-weight: 600; font-size: 14px; }
+  footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
+  footer a, .bar a { color: var(--accent); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Search the Times</h1>
+<p class="sub">Ask in your own words across New York Times articles since 2016, Times and Athletic podcasts, Cooking recipes and Wirecutter reviews. Newer pieces come first. Each tab keeps the search inside its section.</p>
+<nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+<div id="panels"></div>
+<footer>An independent demo built on public New York Times feeds and the NYT Archive API; results link to the original pages. Each section's results are also a feed: new matches as they are published. <a href="https://neuralweb.dev/design/qdrss/" target="_blank" rel="noopener">How it works</a></footer>
+</div>
+
+<dialog id="newsletter" aria-labelledby="nl-title">
+  <div class="in">
+    <h2 id="nl-title">Get this search by email</h2>
+    <p><span class="demo">Demo</span> No email is sent from this page; this shows what the newsletter would be.</p>
+    <p id="nl-what"></p>
+    <form id="nl-form" method="dialog">
+      <div class="row"><input id="nl-email" type="email" placeholder="you@example.com" aria-label="Email address" required></div>
+      <div class="row">
+        <label><input type="radio" name="freq" value="daily" checked> Daily</label>
+        <label><input type="radio" name="freq" value="weekly"> Weekly</label>
+        <label><input type="radio" name="freq" value="instant"> As they are published</label>
+      </div>
+      <div class="row"><button type="submit" id="nl-create">Create newsletter</button><button type="button" class="ghost" id="nl-close">Close</button><span id="nl-done" class="done" hidden></span></div>
+    </form>
+    <div class="mail" id="nl-preview"></div>
+  </div>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const state = { tab: 'all', q: '', results: {}, verticals: [], seq: {} };
+const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids.filter(k => k != null)); return n; };
+const day = iso => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); };
+const httpUrl = u => { try { const x = new URL(u); return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : null; } catch { return null; } };
+
+function readUrl() {
+  const p = new URLSearchParams(location.search);
+  state.q = (p.get('q') || '').trim();
+  const tab = p.get('tab');
+  if (tab && state.verticals.some(v => v.id === tab)) state.tab = tab;
+}
+function writeUrl() {
+  const p = new URLSearchParams();
+  if (state.q) p.set('q', state.q);
+  if (state.tab !== 'all') p.set('tab', state.tab);
+  history.replaceState(null, '', p.toString() ? `?${p}` : location.pathname);
+}
+
+function buildTabs() {
+  const tabs = $('tabs'), panels = $('panels');
+  for (const v of state.verticals) {
+    const b = el('button', { type: 'button', textContent: v.label, id: `tab-${v.id}` });
+    b.setAttribute('role', 'tab'); b.setAttribute('aria-controls', `panel-${v.id}`);
+    b.addEventListener('click', () => select(v.id, true));
+    tabs.append(b);
+    const input = el('input', { type: 'text', placeholder: v.id === 'all' ? 'Search everything' : `Search ${v.label}`, required: true });
+    input.setAttribute('aria-label', `Search ${v.label}`);
+    const form = el('form', { className: 'ask' }, input, el('button', { type: 'submit', textContent: 'Search' }));
+    form.addEventListener('submit', e => { e.preventDefault(); run(v.id, input.value.trim()); });
+    const chips = el('div', { className: 'chips' }, ...v.examples.map(x => {
+      const c = el('button', { type: 'button', textContent: x });
+      c.addEventListener('click', () => { input.value = x; run(v.id, x); });
+      return c;
+    }));
+    const hint = el('p', { className: 'hint', textContent: v.id === 'all' ? 'Every section, podcasts included. Cooking and Wirecutter have their own tabs.' : `Searches only ${v.label}.` });
+    const panel = el('section', { className: 'panel', id: `panel-${v.id}`, hidden: true }, form, hint, chips,
+      el('div', { className: 'bar', hidden: true }), el('div', { className: 'status' }), el('ol'));
+    panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', `tab-${v.id}`);
+    panels.append(panel);
+  }
+}
+
+function select(id, runIt) {
+  state.tab = id;
+  for (const v of state.verticals) {
+    const on = v.id === id;
+    $(`tab-${v.id}`).setAttribute('aria-selected', on);
+    $(`panel-${v.id}`).hidden = !on;
+  }
+  const panel = $(`panel-${id}`), input = panel.querySelector('input');
+  if (state.q && !input.value) input.value = state.q;
+  writeUrl();
+  if (runIt && input.value.trim() && state.results[id]?.q !== input.value.trim()) run(id, input.value.trim());
+}
+
+async function run(id, q) {
+  if (!q) return;
+  state.q = q; writeUrl();
+  const panel = $(`panel-${id}`), v = state.verticals.find(x => x.id === id);
+  panel.querySelector('input').value = q;
+  const status = panel.querySelector('.status'), list = panel.querySelector('ol'), bar = panel.querySelector('.bar');
+  // A newer search in this tab replaces this one: its answer, whenever it comes, is dropped.
+  const seq = state.seq[id] = (state.seq[id] || 0) + 1;
+  list.replaceChildren(); bar.hidden = true;
+  status.textContent = v.feed ? `Searching ${v.label}: reading candidates and judging each one…` : `Asking ${v.label}…`;
+  const started = performance.now();
+  try {
+    const r = await fetch(`/api/search?${new URLSearchParams({ q, vertical: id })}`);
+    const body = await r.json();
+    if (!r.ok) throw new Error(body.error || `HTTP ${r.status}`);
+    if (seq !== state.seq[id]) return;
+    state.results[id] = { q, ...body };
+    render(panel, v, q, body, (performance.now() - started) / 1000);
+  } catch (err) {
+    if (seq === state.seq[id]) status.textContent = `Search failed: ${err.message}. Try again in a moment.`;
+  }
+}
+
+function render(panel, v, q, body, secs) {
+  const status = panel.querySelector('.status'), list = panel.querySelector('ol'), bar = panel.querySelector('.bar');
+  const rows = body.results;
+  status.textContent = rows.length ? '' : `Nothing in ${v.label} matches “${q}”. Try other words, or the All tab.`;
+  for (const r of rows) {
+    const href = httpUrl(r.url); if (!href) continue;
+    const img = httpUrl(r.image) ? el('img', { src: r.image, alt: '', loading: 'lazy' }) : null;
+    const meta = [r.source, day(r.date)].filter(Boolean).join(' · ');
+    list.append(el('li', {}, img, el('div', { className: 'body' },
+      el('a', { href, target: '_blank', rel: 'noopener', textContent: r.title }),
+      meta ? el('div', { className: 'meta', textContent: meta }) : null,
+      r.summary ? el('div', { className: 'summary', textContent: r.summary.length > 260 ? r.summary.slice(0, 257) + '…' : r.summary }) : null,
+      (r.why || r.strong) ? el('div', { className: 'why' }, r.strong ? el('span', { className: 'strong', textContent: 'Strong match' }) : null, r.why || '') : null)));
+  }
+  if (!rows.length) return;
+  const email = el('button', { type: 'button', textContent: 'Create an email newsletter' });
+  email.addEventListener('click', () => openNewsletter(v, q, rows, body.feed));
+  const acts = el('div', { className: 'acts' }, email);
+  if (body.feed) {
+    const copy = el('button', { type: 'button', className: 'ghost', textContent: 'Copy RSS feed' });
+    copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(body.feed); copy.textContent = 'Copied'; } catch { prompt('RSS feed URL', body.feed); } });
+    acts.append(copy);
+  }
+  bar.replaceChildren(el('span', { textContent: `${rows.length} result${rows.length === 1 ? '' : 's'} in ${v.label} for “${q}”${secs >= 0.5 ? ` · ${secs.toFixed(1)}s` : ''}` }), acts);
+  bar.hidden = false;
+}
+
+function openNewsletter(v, q, rows, feed) {
+  const d = $('newsletter');
+  $('nl-what').textContent = `New ${v.id === 'all' ? '' : v.label + ' '}pieces about “${q}”, found by the same search this page runs.`;
+  $('nl-done').hidden = true; $('nl-create').disabled = false;
+  const items = rows.slice(0, 5).map(r => el('div', { className: 'it' }, el('b', { textContent: r.title }),
+    el('span', { textContent: [r.source, day(r.date)].filter(Boolean).join(' · ') })));
+  $('nl-preview').replaceChildren(el('div', { className: 'hd', textContent: `Preview · Subject: Your Times briefing on “${q}”` }), ...items);
+  d.showModal();
+  $('nl-email').focus();
+}
+$('nl-close').addEventListener('click', () => $('newsletter').close());
+$('nl-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const email = $('nl-email');
+  if (!email.checkValidity()) { email.reportValidity(); return; }
+  const freq = new FormData($('nl-form')).get('freq');
+  $('nl-done').textContent = `Demo: a ${freq === 'instant' ? 'real-time' : freq} newsletter for ${email.value} would start here. Nothing was sent.`;
+  $('nl-done').hidden = false; $('nl-create').disabled = true;
+});
+
+
+(async () => {
+  try {
+    state.verticals = await (await fetch('/api/verticals')).json();
+  } catch {
+    $('panels').textContent = 'Could not load the sections. Reload the page to try again.';
+    return;
+  }
+  buildTabs(); readUrl();
+  select(state.tab, false);
+  const input = $(`panel-${state.tab}`).querySelector('input');
+  if (state.q) run(state.tab, state.q); else input.focus();
+})();
+</script>
+</body>
+</html>

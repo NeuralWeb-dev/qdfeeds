@@ -49,3 +49,27 @@ def test_nytnews_collection():
     # scripts/backfill_nyt_news.py files archive articles under these by section.
     for section in ("nytnews_world", "nytnews_politics", "nytnews_business", "nytnews_athletic_nfl"):
         assert section in names
+
+
+def test_select_sources_by_collection():
+    from qdrss.ingest import select_sources
+    sources = load_sources(MANIFEST)
+    assert select_sources(sources, "") == sources
+    news = select_sources(sources, "nytnews")
+    assert news and {s.collection for s in news} == {"nytnews"}
+    assert {s.collection for s in select_sources(sources, "nytnews, nytimes")} == {"nytnews", "nytimes"}
+    import pytest
+    with pytest.raises(ValueError):
+        select_sources(sources, "nope")
+
+
+def test_every_vertical_resolves_against_the_manifest():
+    from qdrss.verticals import VERTICALS, resolve
+    sources = load_sources(MANIFEST)
+    scopes = {v.id: resolve(v, sources, strict=True) for v in VERTICALS if not v.nlweb_url}
+    for vid, scope in scopes.items():
+        assert scope.sources or scope.collections, vid
+    assert scopes["travel"].sources == {"nytnews_travel"}
+    assert {"nytnews_athletic_nfl", "nyt_athletic_hockey_show", "athletic_fc", "nytnews_baseball"} <= scopes["athletic"].sources
+    assert scopes["audio"].collections == {"nytimes"}
+    assert scopes["all"].collections == {"nytnews", "nytimes"}
