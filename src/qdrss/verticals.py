@@ -6,7 +6,8 @@ search returns Travel articles. A scope is either whole collections (All, Audio)
 also reaches the archive-only sources scripts/backfill_nyt_news.py creates for sections
 with no feed (nytnews_archive_<section>), or sources named by selectors resolved against
 the manifest: a glob over source names (`nytnews_athletic_*`) or an exact name. The few
-archive-only names a selector uses are in ARCHIVE_SOURCES.
+archive-only names a selector uses are in ARCHIVE_SOURCES. A source scope also names its
+sources' collections, so a store partitioned by collection queries only those partitions.
 
 Cooking and Wirecutter are NLWeb sites (nlweb-samples on Cloud Run): their recipes and
 reviews are not RSS, so the page asks those backends directly through /api/search.
@@ -19,7 +20,7 @@ from dataclasses import dataclass
 
 from .ingest import Source
 
-ARCHIVE_SOURCES = ("nytnews_archive_sports",)  # NYT sports desks with no feed of their own
+ARCHIVE_SOURCES = {"nytnews_archive_sports": "nytnews"}  # NYT sports desks with no feed of their own -> collection
 
 NYT_SPORTS = ["nytnews_baseball", "nytnews_collegebasketball", "nytnews_collegefootball", "nytnews_golf",
               "nytnews_hockey", "nytnews_probasketball", "nytnews_profootball", "nytnews_soccer",
@@ -94,7 +95,8 @@ def resolve(vertical: Vertical, sources: list[Source], strict: bool = False) -> 
         if strict and set(vertical.collections) - known:
             raise ValueError(f"vertical {vertical.id}: no collection {sorted(set(vertical.collections) - known)}")
         return Scope(collections=frozenset(vertical.collections))
-    names = [s.name for s in sources] + list(ARCHIVE_SOURCES)
+    home = {s.name: s.collection for s in sources} | ARCHIVE_SOURCES
+    names = list(home)
     out: set[str] = set()
     for selector in vertical.selectors:
         if any(ch in selector for ch in "*?["):
@@ -103,4 +105,6 @@ def resolve(vertical: Vertical, sources: list[Source], strict: bool = False) -> 
             out.add(selector)
         elif strict:
             raise ValueError(f"vertical {vertical.id}: no source {selector!r}")
-    return Scope(sources=frozenset(out))
+    # The sources' collections too: a store partitioned by collection (Cosmos) then asks only those
+    # partitions instead of fanning out over all of them, which is 15x slower.
+    return Scope(sources=frozenset(out), collections=frozenset(home[name] for name in out))

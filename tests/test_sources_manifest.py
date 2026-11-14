@@ -70,6 +70,9 @@ def test_every_vertical_resolves_against_the_manifest():
     for vid, scope in scopes.items():
         assert scope.sources or scope.collections, vid
     assert scopes["travel"].sources == {"nytnews_travel"}
+    # A source scope names its collections, so Cosmos asks those partitions only.
+    assert scopes["travel"].collections == {"nytnews"}
+    assert scopes["opinion"].collections == {"nytnews", "nytimes"}
     assert {"nytnews_athletic_nfl", "nyt_athletic_hockey_show", "athletic_fc", "nytnews_baseball"} <= scopes["athletic"].sources
     assert scopes["audio"].collections == {"nytimes"}
     assert scopes["all"].collections == {"nytnews", "nytimes"}
