@@ -19,10 +19,8 @@ import os
 import sys
 import time
 
-from azure.cosmos.exceptions import CosmosHttpResponseError
-
 from qdrss.config import load_config
-from qdrss.cosmos import CosmosStore, _document
+from qdrss.cosmos import CosmosStore, _document, _write
 from qdrss.ingest import load_sources
 from qdrss.store import Store
 
@@ -55,17 +53,7 @@ async def main(path: str, only: set[str], skip_existing: bool) -> None:
         nonlocal done
         async with sem:
             doc = _document(item, vector, model if vector is not None else None)
-            for attempt in range(30):
-                try:
-                    await cosmos._items.upsert_item(doc)
-                    break
-                except CosmosHttpResponseError as exc:
-                    if exc.status_code != 429:
-                        raise
-                    wait = float(exc.headers.get("x-ms-retry-after-ms", 1000)) / 1000
-                    await asyncio.sleep(max(wait, 0.5) * (1 + attempt / 5))
-            else:
-                raise RuntimeError(f"gave up on {item.id} after repeated 429s")
+            await _write(cosmos._items.upsert_item, doc)
         done += 1
         if done % 1000 == 0:
             print(f"{done} written in {time.time() - started:.0f}s", flush=True)
