@@ -26,6 +26,7 @@ class Index:
         self._collection = np.asarray(
             [(collections or {}).get(item.source, "") for item in items], dtype=object
         )
+        self._source = np.asarray([item.source for item in items], dtype=object)
         self.ingested = np.asarray(
             [item.ingested_at.timestamp() for item in items], dtype=np.float64
         )
@@ -33,18 +34,23 @@ class Index:
     def __len__(self) -> int:
         return len(self.items)
 
-    def eligible(self, since: datetime | None, collection: str | None = None) -> np.ndarray:
+    def eligible(
+        self, since: datetime | None, collection: str | None = None, sources: frozenset[str] | None = None
+    ) -> np.ndarray:
         mask = np.ones(len(self.items), dtype=bool)
         if since is not None:
             mask &= self.ingested > since.timestamp()
         if collection:
             mask &= self._collection == collection
+        if sources is not None:
+            mask &= np.isin(self._source, list(sources))
         return mask
 
     async def search(
-        self, vector: np.ndarray, since: datetime | None, collection: str | None, limit: int
+        self, vector: np.ndarray, since: datetime | None, collection: str | None, limit: int,
+        sources: frozenset[str] | None = None,
     ) -> list[Candidate]:
-        rows = np.flatnonzero(self.eligible(since, collection))
+        rows = np.flatnonzero(self.eligible(since, collection, sources))
         if not len(rows):
             return []
         scores = self.matrix[rows] @ vector

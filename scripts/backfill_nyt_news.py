@@ -5,9 +5,9 @@ API returns every article of a month, so one call per month recovers the history
 headline, summary, lead paragraph, date and link.
 
 - Each article is filed under the nytnews source of its section, from the URL path
-  (/2024/05/01/world/europe/... is nytnews_europe). A section with no feed (Opinion,
-  Books, Travel, the Magazine) gets an archive-only source, nytnews_archive_opinion,
-  titled "NYT > Opinion (archive)".
+  (/2024/05/01/world/europe/... is nytnews_europe). A section with no feed (Learning,
+  Briefing, Insider) gets an archive-only source, nytnews_archive_learning, titled
+  "NYT > Learning (archive)".
 - Left out: podcast pages (the nytimes collection has those), corrections, paid
   death notices, puzzle companions (Spelling Bee forum, Connections) and documents
   without a headline.
@@ -113,6 +113,10 @@ SECTIONS: dict[str, str] = {
     "fashion": "nytnews_fashionandstyle",
     "dining": "nytnews_diningandwine",
     "t-magazine": "nytnews_tmagazine",
+    "travel": "nytnews_travel",
+    "opinion": "nytnews_opinion",
+    "books": "nytnews_books",
+    "magazine": "nytnews_magazine",
 }
 # Articles are /YYYY/MM/DD/<section>/[<subsection>/]<slug>; live-blog posts and interactives put
 # live/ or interactive/ first, and a live post adds the blog's own slug after the section.
@@ -127,7 +131,7 @@ def source_for(url: str) -> str:
     for prefix in sorted(SECTIONS, key=len, reverse=True):
         if path == prefix or path.startswith(prefix + "/"):
             return SECTIONS[prefix]
-    # A section with no feed of its own (opinion, books, travel, magazine) is an archive-only source.
+    # A section with no feed of its own (learning, briefing, insider) is an archive-only source.
     section = re.sub(r"[^a-z0-9]+", "_", path.split("/")[0]).strip("_")
     return f"{FALLBACK}_{section}" if section else FALLBACK
 

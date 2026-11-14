@@ -192,7 +192,7 @@ def test_with_no_more_candidates_than_kept_nothing_changes():
 async def test_the_boost_widens_the_pool_and_the_feed_url_carries_it(store: Store):
     asked = []
     class Spy:
-        async def search(self, vector, since, collection, limit):
+        async def search(self, vector, since, collection, limit, sources=None):
             asked.append(limit)
             return []
     for fresh in (0.0, 180.0):
@@ -212,3 +212,13 @@ async def test_one_result_per_url_across_sources(store: Store):
     matches = await evaluate(req, index, HashEmbeddings(), KeywordRanker(), **OPTS)
     urls = [m.item.url for m in matches]
     assert len(urls) == len(set(urls)) == 2
+
+
+async def test_sources_limit_the_candidates(store: Store):
+    # A vertical searches only its sources: the closer item from another source is not a candidate.
+    await store.insert_missing([make_item("a", "rust compiler", "rust", source="travel"),
+                                make_item("b", "rust compiler rust compiler", "rust", source="world")])
+    index = await build_index(store, HashEmbeddings())
+    req = FeedRequest("rust compiler", since=None, limit=10, threshold="relevant", sources=frozenset({"travel"}))
+    matches = await evaluate(req, index, HashEmbeddings(), KeywordRanker(), **OPTS)
+    assert [m.item.source for m in matches] == ["travel"]

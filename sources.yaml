@@ -1944,6 +1944,24 @@ nytnews:
 - name: nytnews_athletic_gaming
   url: https://www.nytimes.com/athletic/rss/gaming/
   # Gaming - The Athletic; 100 items, latest 2026-10-28
+- name: nytnews_travel
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Travel.xml
+  # NYT > Travel; 20 items, latest 2026-11-14 (not listed on nytimes.com/rss)
+- name: nytnews_opinion
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Opinion.xml
+  # NYT > Opinion; 50 items, latest 2026-11-14 (not listed on nytimes.com/rss)
+- name: nytnews_books
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Books.xml
+  # NYT > Books; 35 items, latest 2026-11-13 (not listed on nytimes.com/rss)
+- name: nytnews_magazine
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Magazine.xml
+  # NYT > The New York Times Magazine; 20 items, latest 2026-11-13 (not listed on nytimes.com/rss)
+- name: nytnews_style
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Style.xml
+  # NYT > Fashion; 20 items, latest 2026-11-13 (not listed on nytimes.com/rss)
+- name: nytnews_sundayreview
+  url: https://rss.nytimes.com/services/xml/rss/nyt/Sunday-Review.xml
+  # NYT > Opinion > Sunday Opinion; 20 items, latest 2026-11-13 (not listed on nytimes.com/rss)
 
 npr:
 # The NPR universe, checked 2026-10-07 (every feed fetched and parsed with QDRSS's own parser):

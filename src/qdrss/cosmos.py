@@ -174,6 +174,7 @@ class CosmosStore:
         since: datetime | None,
         collection: str | None,
         limit: int,
+        sources: frozenset[str] | None = None,
     ) -> list[Candidate]:
         clauses = ["IS_DEFINED(c.embedding)"]
         params: list[dict[str, Any]] = [
@@ -183,6 +184,9 @@ class CosmosStore:
         if since is not None:
             clauses.append("c.ingested_ts > @since")
             params.append({"name": "@since", "value": since.timestamp()})
+        if sources is not None:
+            clauses.append("ARRAY_CONTAINS(@sources, c.source)")
+            params.append({"name": "@sources", "value": sorted(sources)})
         if collection:
             clauses.append("c.collection = @collection")
             params.append({"name": "@collection", "value": collection})
