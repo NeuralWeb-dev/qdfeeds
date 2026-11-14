@@ -1661,6 +1661,621 @@ npr:
 - name: npr_bright_lit_place
   url: https://publicfeeds.net/f/10127/feed-rss.xml
   # Bright Lit Place — NPR; latest 2026-02-10
+# Added 2026-11-13 to bring the collection to 300: public-radio shows found through Apple's directory
+# (searched by publisher: NPR, its member stations and public-radio producers), each fetched and parsed
+# with QDRSS's own parser. Kept: an episode since 2026-08-15, at least 3 episodes, episode text of 150+
+# characters, at most 1.5 episodes a day (drops per-story news-clip feeds), and fewer than half its
+# episode titles shared with a listed feed. National producers first, then one show per station in
+# turn, so the 203 cover 98 producers. Newest first.
+- name: npr_the_brief_from_wabe
+  url: https://www.omnycontent.com/d/playlist/5ec71174-b7c1-46da-88de-b18e00b479cf/38e768e1-2770-4bf3-8a0e-b21601285373/36ccdecd-4057-4bdc-b69c-b216012853a1/podcast.rss
+  # The Brief from WABE — WABE; latest 2026-11-13
+- name: npr_wbez_news
+  url: https://wbez-rss.streamguys1.com/wbez-features/wbez-features.xml
+  # WBEZ News — WBEZ Chicago; latest 2026-11-12
+- name: npr_all_of_it_with_alison_stewart
+  url: https://feeds.simplecast.com/kyG_uojt
+  # All Of It with Alison Stewart — WNYC; latest 2026-11-12
+- name: npr_nyc_now
+  url: https://feeds.simplecast.com/ysE9ORt_
+  # NYC NOW — WNYC; latest 2026-11-12
+- name: npr_in_our_headphones
+  url: https://www.omnycontent.com/d/playlist/bad5d079-8dcb-4630-8770-aa090049131d/32b2ac38-5a48-4300-9fa6-aa40002038b5/4ac1c451-4315-4096-ab9b-aa40002038c4/podcast.rss
+  # In Our Headphones — KEXP; latest 2026-11-12
+- name: npr_kqed_s_the_california_report
+  url: https://feeds.megaphone.fm/KQINC5002818583
+  # KQED's The California Report — KQED; latest 2026-11-12
+- name: npr_live_on_kexp
+  url: https://www.omnycontent.com/d/playlist/bad5d079-8dcb-4630-8770-aa090049131d/18f3a48e-1c64-43e8-96e9-aa40002038ee/856f4314-821f-46ca-bc8e-aa40002038f2/podcast.rss
+  # Live on KEXP — KEXP; latest 2026-11-12
+- name: npr_birdnote_daily
+  url: https://feeds.simplecast.com/OB7SrYSf
+  # BirdNote Daily — BirdNote; latest 2026-11-12
+- name: npr_political_breakdown
+  url: https://feeds.megaphone.fm/KQINC9796326111
+  # Political Breakdown — KQED; latest 2026-11-12
+- name: npr_the_culture_show
+  url: https://feeds.wgbh.org/5241/feed-rss.xml
+  # The Culture Show Podcast — GBH News; latest 2026-11-12
+- name: npr_the_slowdown_poetry_reflection_daily
+  url: https://feeds.publicradio.org/public_feeds/the-slowdown
+  # The Slowdown: Poetry & Reflection Daily — American Public Media; latest 2026-11-12
+- name: npr_the_science_of_happiness
+  url: https://rss.pdrl.fm/0f808e/feeds.feedburner.com/TheScienceOfHappiness
+  # The Science of Happiness — PRX and Greater Good Science Center; latest 2026-11-12
+- name: npr_this_is_uncomfortable
+  url: https://feeds.publicradio.org/public_feeds/this-is-uncomfortable
+  # This Is Uncomfortable — Marketplace; latest 2026-11-12
+- name: npr_stories_from_the_stage
+  url: https://feeds.wgbh.org/355/feed-rss.xml
+  # Stories From The Stage — GBH; latest 2026-11-12
+- name: npr_opb_politics_now
+  url: https://feed.cdnstream1.com/zjb/feed/download/55/cd/24/55cd2420-5477-4d39-8737-a4de4fb7e909.xml
+  # OPB Politics Now — Oregon Public Broadcasting; latest 2026-11-12
+- name: npr_let_s_talk_marketplace
+  url: https://feeds.captivate.fm/lets-talk-marketplace/
+  # Let's talk Marketplace — Marketplace Universe; latest 2026-11-12
+- name: npr_weekend_film_reviews
+  url: https://feed.cdnstream1.com/zjb/feed/download/0c/2f/a2/0c2fa2ea-2757-40eb-8135-99b3c9c78156.xml
+  # Weekend Film Reviews — KCRW; latest 2026-11-12
+- name: npr_minnesota_today
+  url: https://feeds.publicradio.org/public_feeds/mpr-news-update
+  # Minnesota Today — Minnesota Public Radio; latest 2026-11-12
+- name: npr_the_la_report
+  url: https://www.omnycontent.com/d/playlist/acc8cc57-ff7c-44c5-9bd6-ab0900fbdc43/6fb6a6fb-9da9-4228-a1fe-ab91017920b8/2c429706-e067-4cd8-aa80-ab91017a4f72/podcast.rss
+  # The LA Report — LAist Studios; latest 2026-11-12
+- name: npr_question_everything
+  url: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/42bda98c-0825-46dc-b69f-b4cf01179be4/21300391-747b-48e4-b611-b4cf01179bf3/podcast.rss
+  # Question Everything — KCRW; latest 2026-11-12
+- name: npr_terrestrials
+  url: https://feeds.simplecast.com/fS_LWlfx
+  # Terrestrials — WNYC; latest 2026-11-12
+- name: npr_minnesota_now
+  url: https://feeds.publicradio.org/public_feeds/minnesota-now
+  # Minnesota Now — Minnesota Public Radio; latest 2026-11-12
+- name: npr_la_brega
+  url: https://feeds.acast.com/public/shows/68c885c59445f7a951e9b5c4
+  # La Brega — Futuro Media; latest 2026-11-12
+- name: npr_sports_in_america_with_david_greene
+  url: https://publicfeeds.net/f/1314/feed-rss.xml
+  # Sports In America with David Greene — WHYY | PRX; latest 2026-11-12
+- name: npr_the_arthur
+  url: https://feeds.wgbh.org/2469/feed-rss.xml
+  # The Arthur Podcast — GBH & PBS Kids; latest 2026-11-12
+- name: npr_composers_datebook
+  url: https://feeds.publicradio.org/public_feeds/composers-datebook
+  # Composers Datebook — American Public Media; latest 2026-11-12
+- name: npr_yourclassical_daily_download
+  url: https://feeds.publicradio.org/public_feeds/daily-download
+  # YourClassical Daily Download — American Public Media; latest 2026-11-12
+- name: npr_the_world
+  url: https://latest-edition.feed.theworld.org/
+  # The World — PRX; latest 2026-11-12
+- name: npr_this_day_an_america_250_history_show
+  url: https://rss.pdrl.fm/2d6447/thisday.feed.electionhistory.show/
+  # This Day (An America 250 History Show) — Jody Avirgan & Radiotopia; latest 2026-11-12
+- name: npr_alaska_news_nightly_alaska_public_media
+  url: https://alaskapublic-rss.streamguys1.com/alaskanewsnightly/alaska-news-nightly-alaska-public-media-apple-podcasts.xml
+  # Alaska News Nightly - Alaska Public Media — Alaska Public Media; latest 2026-11-12
+- name: npr_idaho_matters
+  url: https://publicfeeds.net/f/8475/feed-rss.xml
+  # Idaho Matters — Boise State Public Radio; latest 2026-11-12
+- name: npr_colorado_matters
+  url: https://pod.cpr.org/cm/
+  # Colorado Matters — Colorado Public Radio; latest 2026-11-12
+- name: npr_the_colin_mcenroe_show
+  url: https://www.omnycontent.com/d/playlist/ac0be969-d7df-460c-a66c-a6f900e1ebd1/71dc4a0f-e8ca-4021-aec9-aa030026042d/b695cb87-f6a9-4c76-8f11-aa030026043b/podcast.rss
+  # The Colin McEnroe Show — Connecticut Public Radio; latest 2026-11-12
+- name: npr_sound_of_ideas
+  url: https://feeds.megaphone.fm/sound-of-ideas
+  # Sound of Ideas — Ideastream Public Media; latest 2026-11-12
+- name: npr_focus_on_flowers
+  url: https://f.prxu.org/4713/feed-rss.xml
+  # Focus on Flowers — Indiana Public Media; latest 2026-11-12
+- name: npr_up_north_lowdown
+  url: https://www.interlochenpublicradio.org/podcast/up-north-lowdown/rss.xml
+  # Up North Lowdown — Interlochen Public Radio; latest 2026-11-12
+- name: npr_here_first
+  url: https://www.iowapublicradio.org/podcast/here-first/rss.xml
+  # Here First — Iowa Public Radio; latest 2026-11-12
+- name: npr_monterey_bay_today
+  url: https://www.kazu.org/montereybaytoday/rss.xml
+  # Monterey Bay Today — KAZU; latest 2026-11-12
+- name: npr_central_coast_voices
+  url: https://www.kcbx.org/podcast/central-coast-voices/rss.xml
+  # Central Coast Voices — KCBX; latest 2026-11-12
+- name: npr_think_from_kera
+  url: https://feeds.feedburner.com/KERA-Think
+  # Think from KERA — KERA; latest 2026-11-12
+- name: npr_the_kosu_daily
+  url: https://feeds.captivate.fm/kosu-daily/
+  # The KOSU Daily — KOSU; latest 2026-11-12
+- name: npr_ozarks_at_large
+  url: https://publicfeeds.net/f/5209/feed-rss.xml
+  # Ozarks at Large — KUAF 91.3 Public Radio; latest 2026-11-12
+- name: npr_radiowest
+  url: https://radiowest.kuer.org/podcast/radiowest/rss.xml
+  # RadioWest — KUER; latest 2026-11-12
+- name: npr_in_the_noco
+  url: https://feeds.transistor.fm/in-the-noco
+  # In The NoCo — KUNC; latest 2026-11-12
+- name: npr_soundside
+  url: https://www.omnycontent.com/d/playlist/fa64d43e-1285-4f73-948e-aeae00546c65/4492ec39-012c-4872-b402-b17c013dc919/508da6b6-2cf8-4945-bc25-b17c013dc94d/podcast.rss
+  # Soundside — KUOW News and Information; latest 2026-11-12
+- name: npr_the_music_box
+  url: https://feeds.lpm.org/themusicboxpodcast
+  # The Music Box — Louisville Public Media; latest 2026-11-12
+- name: npr_montana_news
+  url: https://www.mtpr.org/podcast/montana-news/rss.xml
+  # Montana News — Montana Public Radio; latest 2026-11-12
+- name: npr_story_of_the_day
+  url: https://www.northcountrypublicradio.org/podcast/sotdpodcast
+  # Story of the Day — NCPR: North Country Public Radio; latest 2026-11-12
+- name: npr_friday_live
+  url: https://www.spreaker.com/show/4876912/episodes/feed
+  # Friday LIVE — Nebraska Public Media; latest 2026-11-12
+- name: npr_the_daily_rundown
+  url: https://knpr.org/podcast/the-daily-rundown/rss.xml
+  # The Daily Rundown — Nevada Public Radio; latest 2026-11-12
+- name: npr_dakota_datebook
+  url: https://news.prairiepublic.org/podcast/dakota-datebook/rss.xml
+  # Dakota Datebook — Prairie Public; latest 2026-11-12
+- name: npr_st_louis_on_the_air
+  url: https://kwmu-rss.streamguys1.com/stl_on_the_air/st-louis-on-the-air-itunes.xml
+  # St. Louis on the Air — St. Louis Public Radio; latest 2026-11-12
+- name: npr_echoes_of_the_prairie
+  url: https://www.omnycontent.com/d/playlist/430e4218-cd53-415e-9b8c-aff800c35258/20e42318-dfc2-432c-9c50-b3cc01627a40/8ca7afbe-0211-4732-922d-b3cc01627f1b/podcast.rss
+  # Echoes of the Prairie — Tri States Public Radio; latest 2026-11-12
+- name: npr_northeast_notebook
+  url: https://www.wamc.org/podcast/northeastnotebook/rss.xml
+  # Northeast Notebook — WAMC; latest 2026-11-12
+- name: npr_the_metro
+  url: https://feed.cdnstream1.com/zjb/feed/download/63/f9/73/63f973e6-71f8-495a-a6d3-0203e93ccb70.xml
+  # The Metro — WDET; latest 2026-11-12
+- name: npr_charlotte_talks_with_mike_collins
+  url: https://www.wfae.org/podcast/charlotte-talks-with-mike-collins/rss.xml
+  # Charlotte Talks With Mike Collins — WFAE; latest 2026-11-12
+- name: npr_speaking_of
+  url: https://news.wfsu.org/podcast/speaking-of/rss.xml
+  # Speaking Of — WFSU Public Media; latest 2026-11-12
+- name: npr_focus_west_michigan
+  url: https://www.wgvunews.org/podcast/focus-west-michigan/rss.xml
+  # Focus West Michigan — WGVU Public Radio; latest 2026-11-12
+- name: npr_can_do
+  url: https://feed.podbean.com/candopodcast/feed.xml
+  # Can Do — WHRO Public Media; latest 2026-11-12
+- name: npr_the_21st_show
+  url: https://will.illinois.edu/21stshow/rss
+  # The 21st Show — Illinois Public Media - WILL; latest 2026-11-12
+- name: npr_the_spark
+  url: https://f.prxu.org/16956/feed-rss.xml
+  # The Spark — WITF; latest 2026-11-12
+- name: npr_first_coast_connect
+  url: https://news.wjct.org/podcast/first-coast-connect/rss.xml
+  # First Coast Connect — WJCT News; latest 2026-11-12
+- name: npr_michigan_minute
+  url: https://www.wkar.org/podcast/michigan-minute/rss.xml
+  # Michigan Minute — WKAR Public Media; latest 2026-11-12
+- name: npr_the_sunshine_economy
+  url: https://feeds.megaphone.fm/WLRN6607148792
+  # The Sunshine Economy — WLRN News; latest 2026-11-12
+- name: npr_all_sides_with_amy_juravich
+  url: https://wosu-rss.streamguys1.com/allsides/all-sides-with-amy-juravich-apple-podcasts.xml
+  # All Sides with Amy Juravich — WOSU Public Media; latest 2026-11-12
+- name: npr_this_is_nashville
+  url: https://feeds.feedburner.com/ThisIsNashville
+  # This Is Nashville — WPLN News - Nashville Public Radio; latest 2026-11-12
+- name: npr_florida_matters
+  url: https://publicfeeds.net/f/9564/feed-rss.xml
+  # Florida Matters — WUSF Public Media; latest 2026-11-12
+- name: npr_lake_effect
+  url: https://publicfeeds.net/f/11648/feed-rss.xml
+  # Lake Effect — WUWM 89.7 FM - Milwaukee's NPR; latest 2026-11-12
+- name: npr_up_to_date
+  url: https://www.wvia.org/podcast/up-to-date/rss.xml
+  # UP TO DATE — WVIA News; latest 2026-11-12
+- name: npr_louisiana_considered
+  url: https://publicfeeds.net/f/6891/louisiana-considered
+  # Louisiana Considered — WWNO/WRKF Newsroom; latest 2026-11-12
+- name: npr_wxpr_the_extra
+  url: https://www.wxpr.org/podcast/the-extra/rss.xml
+  # WXPR The Extra — WXPR Public Radio; latest 2026-11-12
+- name: npr_colorado_today
+  url: https://pod.cpr.org/ct/
+  # Colorado Today — Colorado Public Radio; latest 2026-11-12
+- name: npr_talk_of_iowa
+  url: https://www.iowapublicradio.org/podcast/talk-of-iowa/rss.xml
+  # Talk of Iowa — Iowa Public Radio; latest 2026-11-12
+- name: npr_up_to_date_2
+  url: https://www.kcur.org/podcast/up-to-date/rss.xml
+  # Up To Date — KCUR Studios; latest 2026-11-12
+- name: npr_brian_lehrer_a_daily_politics
+  url: https://feeds.simplecast.com/_q7f604D
+  # Brian Lehrer: A Daily Politics Podcast — WNYC Studios; latest 2026-11-11
+- name: npr_the_curiosity_desk
+  url: https://feeds.wgbh.org/16593/feed-rss.xml
+  # The Curiosity Desk — GBH News; latest 2026-11-11
+- name: npr_close_all_tabs
+  url: https://feeds.megaphone.fm/KQINC6993880386
+  # Close All Tabs — KQED; latest 2026-11-11
+- name: npr_how_we_survive
+  url: https://feeds.publicradio.org/public_feeds/how-we-survive
+  # How We Survive — Marketplace; latest 2026-11-11
+- name: npr_the_big_dig_season_4_mitt_ted_a_healthcare_story
+  url: https://feeds.wgbh.org/4614/feed-rss.xml
+  # The Big Dig Season 4: Mitt & Ted, a healthcare story — GBH News; latest 2026-11-11
+- name: npr_bring_birds_back
+  url: https://feeds.simplecast.com/2RbfwvQf
+  # Bring Birds Back — BirdNote; latest 2026-11-11
+- name: npr_new_classical_tracks_with_julie_amacher
+  url: https://feeds.publicradio.org/public_feeds/new-classical-tracks
+  # New Classical Tracks with Julie Amacher — American Public Media; latest 2026-11-11
+- name: npr_rooted
+  url: https://feeds.wgbh.org/170/feed-rss.xml
+  # Rooted — GBH News; latest 2026-11-11
+- name: npr_please_advise_a_pop_up_show_from_wnyc
+  url: https://feeds.simplecast.com/Q7YMtu_b
+  # Please Advise: A Pop Up Show from WNYC — WNYC; latest 2026-11-11
+- name: npr_wbur_news
+  url: https://rss.wbur.org/news/podcast
+  # WBUR News — WBUR; latest 2026-11-11
+- name: npr_wamu_local_news
+  url: http://feeds.wamu.org/WAMU885LocalNewsPodcast
+  # WAMU: Local News — WAMU; latest 2026-11-11
+- name: npr_bookmark_with_don_noble
+  url: https://rss.libsyn.com/shows/372905/destinations/3064271.xml
+  # Bookmark with Don Noble — Alabama Public Radio; latest 2026-11-11
+- name: npr_whats_next
+  url: https://www.btpm.org/podcast/whats-next/rss.xml
+  # What’s Next? — BTPM NPR; latest 2026-11-11
+- name: npr_midday_edition
+  url: https://feeds.cloud.kpbs.org/midday-edition
+  # Midday Edition — KPBS; latest 2026-11-11
+- name: npr_outside_in
+  url: https://rss.introcast.io/1061222770/feeds.megaphone.fm/TPG9719828981
+  # Outside/In — NHPR; latest 2026-11-11
+- name: npr_rvas_got_issues
+  url: https://feeds.megaphone.fm/VPM8391242310
+  # RVA’s Got Issues — VPM; latest 2026-11-11
+- name: npr_the_frequency
+  url: https://podcasts.vpr.net/the-frequency
+  # The Frequency — Vermont Public; latest 2026-11-11
+- name: npr_cellar_notes_on_wypr
+  url: https://wtmd-rss.streamguys1.com/CellarNotes/cellar-notes-on-wypr.xml
+  # Cellar Notes on WYPR — WYPR 88.1 FM Baltimore; latest 2026-11-11
+- name: npr_npr_s_mountain_stage
+  url: https://feedpress.me/mountainstagepodcast
+  # NPR's Mountain Stage — West Virginia Public Broadcasting; latest 2026-11-11
+- name: npr_stay_well_with_dr_zorba_paster
+  url: http://feeds.feedburner.com/zorbapasteronyourhealth
+  # Stay Well with Dr. Zorba Paster — Wisconsin Public Radio; latest 2026-11-11
+- name: npr_the_prairieland_22
+  url: https://publicfeeds.net/f/19332/feed-rss.xml
+  # The Prairieland 22 — KERA News; latest 2026-11-11
+- name: npr_red_dirt_dnd
+  url: https://feeds.captivate.fm/reddirtdnd/
+  # Red Dirt DnD — KOSU; latest 2026-11-11
+- name: npr_hittin_season_a_philadelphia_phillies
+  url: https://whyy-rss.streamguys1.com/hittinseason/hittinseason.xml
+  # Hittin' Season: A Philadelphia Phillies podcast — WHYY; latest 2026-11-10
+- name: npr_circle_round
+  url: https://rss.wbur.org/circleround/podcast
+  # Circle Round — WBUR; latest 2026-11-10
+- name: npr_birdnote_en_espanol
+  url: https://feeds.simplecast.com/S7ZdLqAQ
+  # BirdNote en Español — BirdNote; latest 2026-11-10
+- name: npr_the_sam_sanders_show
+  url: https://feed.cdnstream1.com/zjb/feed/download/ac/28/59/ac28594c-e1d0-4231-8728-61865cdc80e8.xml
+  # The Sam Sanders Show — KCRW & Sam Sanders; latest 2026-11-10
+- name: npr_the_frontline_dispatch
+  url: https://feeds.frontline.org/TheFrontlineDispatch
+  # The FRONTLINE Dispatch — GBH; latest 2026-11-10
+- name: npr_this_old_house_radio_hour
+  url: https://feeds.publicradio.org/public_feeds/this-old-house-radio-hour
+  # This Old House Radio Hour — American Public Media; latest 2026-11-10
+- name: npr_climate_cast
+  url: https://feeds.publicradio.org/public_feeds/climate-cast
+  # Climate Cast — Minnesota Public Radio; latest 2026-11-10
+- name: npr_college_uncovered
+  url: https://feeds.wgbh.org/5010/feed-rss.xml
+  # College Uncovered — GBH News; latest 2026-11-10
+- name: npr_long_shadow
+  url: https://publicfeeds.net/f/6760/feed-rss.xml
+  # Long Shadow — Long Lead & PRX; latest 2026-11-10
+- name: npr_the_kitchen_sisters_present
+  url: https://feeds.fugitivewaves.org/fugitivewaves
+  # The Kitchen Sisters Present — The Kitchen Sisters & Radiotopia; latest 2026-11-10
+- name: npr_football_fridays_in_georgia
+  url: https://gpb-od.streamguys1.com/gpb/ffig-itunes.xml
+  # Football Fridays in Georgia — Georgia Public Broadcasting; latest 2026-11-10
+- name: npr_sportsbeat_kc
+  url: https://publicfeeds.net/f/14052/feed-rss.xml
+  # SportsBeat KC — KCUR and The Kansas City Star; latest 2026-11-10
+- name: npr_studio_session_shorts
+  url: https://www.knkx.org/podcast/studio-session-shorts/rss.xml
+  # Studio Session Shorts — KNKX Public Radio; latest 2026-11-10
+- name: npr_radio_ambulante
+  url: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/b3c9b6e7-72ba-45c4-aff9-b1e7012d213b/092b66a8-4329-4183-bb12-b1e7012d216f/podcast.rss
+  # Radio Ambulante — My Cultura, Radio Ambulante and iHeartPodcasts; latest 2026-11-10
+- name: npr_south_carolina_lede
+  url: https://www.southcarolinapublicradio.org/podcast/south-carolina-lede/rss.xml
+  # South Carolina Lede — South Carolina Public Radio; latest 2026-11-10
+- name: npr_reentry_stories
+  url: https://www.wyso.org/podcast/reentry-stories/rss.xml
+  # ReEntry Stories — WYSO; latest 2026-11-10
+- name: npr_talk_of_alaska
+  url: https://alaskapublic-rss.streamguys1.com/talkofalaska/talk-of-alaska-archives-alaska-public-media-apple-podcasts.xml
+  # Talk of Alaska — Alaska Public Media; latest 2026-11-10
+- name: npr_where_we_live
+  url: https://www.omnycontent.com/d/playlist/ac0be969-d7df-460c-a66c-a6f900e1ebd1/eacb4e2f-1b3b-4a2d-a3f7-a9fb00618620/1580ec4b-de35-48fe-95b6-a9fb00618620/podcast.rss
+  # Where We Live — Connecticut Public Radio; latest 2026-11-10
+- name: npr_studio_a
+  url: https://www.interlochenpublicradio.org/podcast/studio-a/rss.xml
+  # Studio A — Interlochen Public Radio; latest 2026-11-10
+- name: npr_under_the_radar_with_callie_crossley
+  url: https://feeds.wgbh.org/181/feed-rss.xml
+  # Under the Radar with Callie Crossley — GBH News; latest 2026-11-09
+- name: npr_the_evergreen
+  url: https://feed.cdnstream1.com/zjb/feed/download/c7/df/d4/c7dfd491-6ffb-410b-84eb-370a269ac8d2.xml
+  # The Evergreen — Oregon Public Broadcasting; latest 2026-11-09
+- name: npr_el_sonido
+  url: https://www.omnycontent.com/d/playlist/bad5d079-8dcb-4630-8770-aa090049131d/8b13edbf-a871-4333-9331-afbf01766a62/9ed4d2cd-fdc6-4cff-88a0-afbf01777950/podcast.rss
+  # El Sonido — KEXP; latest 2026-11-09
+- name: npr_antiques_roadshow_detours
+  url: https://feeds.wgbh.org/310/feed-rss.xml
+  # Antiques Roadshow Detours — GBH; latest 2026-11-09
+- name: npr_backyard_astronomer_delta_college_public_radio
+  url: https://feeds.soundcloud.com/users/soundcloud:users:275034823/sounds.rss
+  # Backyard Astronomer - Delta College Public Radio — Delta College Public Radio; latest 2026-11-09
+- name: npr_off_the_shelf
+  url: https://www.kios.org/podcast/off-the-shelf/rss.xml
+  # Off the Shelf — KIOS 91.5, Omaha Public Radio; latest 2026-11-09
+- name: npr_the_virginia_press_room
+  url: https://feeds.megaphone.fm/virginia-press-room
+  # The Virginia Press Room — VPM & VPAP; latest 2026-11-09
+- name: npr_three_song_stories
+  url: https://f.prxu.org/11544/feed-rss.xml
+  # Three Song Stories — WGCU; latest 2026-11-09
+- name: npr_scandalized
+  url: https://publicfeeds.net/f/8640/feed-rss.xml
+  # Scandalized — Boise State Public Radio; latest 2026-11-09
+- name: npr_the_new_yorker_radio_hour
+  url: https://feeds.simplecast.com/TRuO_SRo
+  # The New Yorker Radio Hour — WNYC Studios and The New Yorker; latest 2026-11-08
+- name: npr_why_philosophical_discussions_about_everyday_lif
+  url: https://news.prairiepublic.org/podcast/why-philosophical-discussions-about-everyday-life/rss.xml
+  # WHY? Philosophical Discussions About Everyday Life — Jack Russell Weinstein / Prairie Public; latest 2026-11-08
+- name: npr_valley_sounds
+  url: https://wlrh.org/podcast-feed/?series=valleysounds
+  # Valley Sounds — WLRH Public Radio; latest 2026-11-08
+- name: npr_the_california_report_magazine
+  url: https://feeds.megaphone.fm/KQINC7690695903
+  # The California Report Magazine — KQED; latest 2026-11-07
+- name: npr_in_common
+  url: https://feeds.wgbh.org/17781/feed-rss.xml
+  # In Common — GBH News; latest 2026-11-07
+- name: npr_oh_god_now_what
+  url: https://publicfeeds.net/f/18045/feed-rss.xml
+  # Oh God Now What — PRX; latest 2026-11-07
+- name: npr_the_debrief
+  url: https://www.ijpr.org/podcast/the-debrief/rss.xml
+  # The Debrief — Jefferson Public Radio; latest 2026-11-07
+- name: npr_curious_nashville
+  url: https://feeds.feedburner.com/CuriousNashville
+  # Curious Nashville — Nashville Public Radio; latest 2026-11-07
+- name: npr_skin_in_the_game
+  url: https://www.btpm.org/podcast/skin-in-the-game/rss.xml
+  # Skin in the Game — BTPM NPR; latest 2026-11-07
+- name: npr_the_treatment
+  url: https://feed.cdnstream1.com/zjb/feed/download/1b/c6/58/1bc65871-3b5b-4b18-a05e-b5a2c1eec713.xml
+  # The Treatment — KCRW; latest 2026-11-06
+- name: npr_the_business
+  url: https://feed.cdnstream1.com/zjb/feed/download/34/5c/36/345c36a7-a587-4220-8c3e-bba344564908.xml
+  # The Business — KCRW; latest 2026-11-06
+- name: npr_spooked
+  url: https://feeds.simplecast.com/TBotaapn
+  # Spooked — KQED and Snap Studios; latest 2026-11-06
+- name: npr_imperfect_paradise
+  url: https://www.omnycontent.com/d/playlist/acc8cc57-ff7c-44c5-9bd6-ab0900fbdc43/805dd567-4759-402e-bf5d-ae1501778d4f/5ab2b792-cfcf-46ed-8c37-ae150189e85a/podcast.rss
+  # Imperfect Paradise — LAist Studios; latest 2026-11-06
+- name: npr_wbur_up_next
+  url: https://rss.wbur.org/upnext/podcast
+  # WBUR Up Next — WBUR; latest 2026-11-06
+- name: npr_the_connection_with_marty_moss_coane
+  url: https://whyy-rss.streamguys1.com/podcast/the-connection-with-marty-moss-coane.xml
+  # The Connection with Marty Moss-Coane — WHYY; latest 2026-11-06
+- name: npr_the_politics_hour_with_kojo_nnamdi
+  url: https://thepoliticshour.feeds.wamu.org/
+  # The Politics Hour with Kojo Nnamdi — WAMU 88.5; latest 2026-11-06
+- name: npr_filmweek
+  url: https://www.omnycontent.com/d/playlist/acc8cc57-ff7c-44c5-9bd6-ab0900fbdc43/b8eef1ff-8d0d-43d5-b470-ab81016f9909/afcdd804-9a3c-46c9-9771-ab81016f9917/podcast.rss
+  # FilmWeek — LAist; latest 2026-11-06
+- name: npr_la_made_the_other_moonshot
+  url: https://www.omnycontent.com/d/playlist/acc8cc57-ff7c-44c5-9bd6-ab0900fbdc43/d6415f01-9871-4f0d-a183-af3c012abfea/32ad348e-8245-46d2-be50-af3c012b050e/podcast.rss
+  # LA Made: The Other Moonshot — LAist Studios; latest 2026-11-06
+- name: npr_amityvilleville
+  url: https://publicfeeds.net/f/15471/feed-rss.xml
+  # Amityvilleville — Radiotopia; latest 2026-11-06
+- name: npr_politics_friday
+  url: https://feeds.publicradio.org/public_feeds/policast
+  # Politics Friday — Minnesota Public Radio; latest 2026-11-06
+- name: npr_snooze
+  url: https://www.omnycontent.com/d/playlist/acc8cc57-ff7c-44c5-9bd6-ab0900fbdc43/613d0dba-1441-451c-a660-ae7c01224015/81f6575d-fa80-467f-a08f-ae7c0122d1c9/podcast.rss
+  # Snooze — LAist Studios; latest 2026-11-06
+- name: npr_yeah_no_im_not_ok
+  url: https://www.omnycontent.com/d/playlist/acc8cc57-ff7c-44c5-9bd6-ab0900fbdc43/15f449a8-6d7b-40e0-a79d-acb8012be2e4/1562e3ab-4113-4c66-ab62-acb8012ccfb1/podcast.rss
+  # Yeah No, I’m Not OK — LAist Studios; latest 2026-11-06
+- name: npr_norco_80
+  url: https://www.omnycontent.com/d/playlist/acc8cc57-ff7c-44c5-9bd6-ab0900fbdc43/4b1cb4b8-36a3-47be-a1c4-ac2c0123d095/5470a30c-c6c5-417f-8c9f-ac2c01242916/podcast.rss
+  # Norco 80 — LAist Studios; latest 2026-11-06
+- name: npr_the_wrap
+  url: https://www.cfpublic.org/podcast/the-wrap/rss.xml
+  # The Wrap Podcast — Central Florida Public Media; latest 2026-11-06
+- name: npr_party_politics
+  url: https://cdn.houstonpublicmedia.org/podcasts/party-politics-apple-podcasts.xml
+  # Party Politics — Houston Public Media; latest 2026-11-06
+- name: npr_kjzz_s_the_show_friday_newscap
+  url: https://www.kjzz.org/podcast/kjzzs-the-show-friday-newscap/rss.xml
+  # KJZZ's The Show: Friday NewsCap — KJZZ; latest 2026-11-06
+- name: npr_film_soceyology
+  url: https://wfyi-rss.streamguys1.com/film/film-soceyology.xml
+  # Film Soceyology — WFYI Public Media; latest 2026-11-06
+- name: npr_wunc_politics
+  url: https://wuncpolitics.feed.wunc.org/
+  # WUNC Politics — WUNC News; latest 2026-11-06
+- name: npr_the_good_the_bad_and_the_ugly_from_houston_matte
+  url: https://cdn.houstonpublicmedia.org/podcasts/good-bad-ugly-apple-podcasts.xml
+  # The Good, the Bad, and the Ugly from Houston Matters — Houston Public Media; latest 2026-11-06
+- name: npr_noon_edition
+  url: https://publicfeeds.net/f/5175/feed-rss.xml
+  # Noon Edition — Indiana Public Media; latest 2026-11-06
+- name: npr_kjzz_s_stories_you_don_t_want_to_miss
+  url: https://www.kjzz.org/podcast/kjzzs-stories-you-dont-want-to-miss/rss.xml
+  # KJZZ's Stories You Don't Want to Miss — KJZZ 91.5FM Phoenix; latest 2026-11-06
+- name: npr_kpbs_roundtable
+  url: https://feeds.cloud.kpbs.org/roundtable
+  # KPBS Roundtable — KPBS; latest 2026-11-06
+- name: npr_week_in_review
+  url: https://www.omnycontent.com/d/playlist/fa64d43e-1285-4f73-948e-aeae00546c65/f2a9b019-3d24-49eb-bf3b-b17c013e2a06/3debde90-667a-4882-bfdf-b17c013e2a27/podcast.rss
+  # Week In Review — KUOW News and Information; latest 2026-11-06
+- name: npr_on_hand
+  url: https://www.omnycontent.com/d/playlist/09bdf4bb-81f7-42fc-8ba4-aad90128d5d3/64ee7c9d-0eef-4609-9130-ac45012a3dce/3ae9dac3-1a22-4890-8550-ac45012a3dd3/podcast.rss
+  # On Hand — Michigan Public; latest 2026-11-06
+- name: npr_nova_presents
+  url: https://feeds.wgbh.org/322/feed-rss.xml
+  # NOVA Presents — GBH; latest 2026-11-05
+- name: npr_art_hounds
+  url: https://feeds.publicradio.org/public_feeds/art-hounds
+  # Art Hounds — Minnesota Public Radio; latest 2026-11-05
+- name: npr_the_speaker
+  url: https://publicfeeds.net/f/18508/feed-rss.xml
+  # The Speaker — KQED; latest 2026-11-05
+- name: npr_hyperfixed
+  url: https://rss.pdrl.fm/d3cf31/feed.hyperfixedpod.com/
+  # Hyperfixed — Alex Goldman & Radiotopia; latest 2026-11-05
+- name: npr_light_box
+  url: https://publicfeeds.net/f/17748/feed-rss.xml
+  # Light Box — Mark Henry Phillips & Radiotopia; latest 2026-11-05
+- name: npr_idolo_the_ballad_of_chalino_sanchez
+  url: https://feeds.megaphone.fm/SONORO3289722523
+  # Ídolo: The Ballad of Chalino Sánchez — Sonoro | Futuro Studios; latest 2026-11-05
+- name: npr_early_risers
+  url: https://feeds.publicradio.org/public_feeds/early-risers
+  # Early Risers — Minnesota Public Radio; latest 2026-11-04
+- name: npr_ie_latino_voices
+  url: https://www.kvcrnews.org/podcast/ie-latino-voices/rss.xml
+  # IE Latino Voices — KVCR; latest 2026-11-04
+- name: npr_what_s_got_the_world_talking
+  url: https://rss.buzzsprout.com/2593138.rss
+  # What's Got the World Talking? — WPR; latest 2026-11-04
+- name: npr_uncuffed
+  url: https://publicfeeds.net/f/9928/feed-rss.xml
+  # Uncuffed — KALW; latest 2026-11-04
+- name: npr_ask_a_bookseller
+  url: https://feeds.publicradio.org/public_feeds/ask-a-bookseller
+  # Ask a Bookseller — Minnesota Public Radio; latest 2026-11-03
+- name: npr_million_bazillion
+  url: https://feeds.publicradio.org/public_feeds/million-bazillion
+  # Million Bazillion — Marketplace; latest 2026-11-03
+- name: npr_in_pursuit_with_colleen_shogan
+  url: https://publicfeeds.net/f/16230/feed-rss.xml
+  # In Pursuit with Colleen Shogan — PRX; latest 2026-11-03
+- name: npr_how_god_works_the_science_behind_spirituality
+  url: https://podcast.davedesteno.com/
+  # How God Works: The Science Behind Spirituality — PRX; latest 2026-11-01
+- name: npr_the_kazu_green_room
+  url: https://www.kazu.org/podcast/the-kazu-green-room/rss.xml
+  # The KAZU Green Room — KAZU; latest 2026-10-30
+- name: npr_great_podversations
+  url: https://feeds.lpm.org/greatpodversationspodcast
+  # Great Podversations — Louisville Public Media; latest 2026-10-30
+- name: npr_stars_and_stars_with_isa
+  url: https://feeds.acast.com/public/shows/6ac923817ce338e8cd12a033
+  # Stars and Stars with Isa — Futuro Studios; latest 2026-10-29
+- name: npr_usa_v_garcia_luna
+  url: https://feeds.acast.com/public/shows/68e5607ff513ad2b819b6899
+  # USA v. García Luna — Futuro Media; latest 2026-10-29
+- name: npr_field_notes
+  url: https://www.mtpr.org/podcast/field-notes/rss.xml
+  # Field Notes — Montana Public Radio; latest 2026-10-29
+- name: npr_classical_music_happy_hour
+  url: https://feeds.simplecast.com/ErCmj16D
+  # Classical Music Happy Hour — WNYC, WQXR; latest 2026-10-28
+- name: npr_alias_condor_soldados_latinos_en_la_guerra_de_uc
+  url: https://feeds.acast.com/public/shows/6a99e730809ae7c2f473b6b0
+  # Alias Cóndor: Soldados Latinos en la Guerra de Ucrania — Futuro Studios, DW, LA Times Studios; latest 2026-10-28
+- name: npr_knkx_studio_sessions
+  url: https://www.knkx.org/podcast/studio-sessions/rss.xml
+  # KNKX Studio Sessions — KNKX Public Radio; latest 2026-10-28
+- name: npr_extremely_american
+  url: https://publicfeeds.net/f/16362/feed-rss.xml
+  # Extremely American — NPR; latest 2026-10-27
+- name: npr_trojan_wars
+  url: https://feed.cdnstream1.com/zjb/feed/download/ad/54/a1/ad54a11c-4046-45b3-9ee8-4b5d18c516c8.xml
+  # Trojan Wars — Oregon Public Broadcasting; latest 2026-10-27
+- name: npr_new_arrivals
+  url: https://www.kalw.org/newarrivals/rss.xml
+  # New Arrivals — KALW; latest 2026-10-27
+- name: npr_how_curious
+  url: https://www.kgou.org/podcast/how-curious/rss.xml
+  # How Curious — KGOU Radio; latest 2026-10-27
+- name: npr_humanature
+  url: https://f.prxu.org/354/feed-rss.xml
+  # HumaNature — Wyoming Public Media; latest 2026-10-26
+- name: npr_kunr_public_radio_local_news_feed
+  url: https://www.kunr.org/podcast/kunr-public-radio-local-news-feed/rss.xml
+  # KUNR Public Radio: Local News Feed — KUNR Public Radio; latest 2026-10-22
+- name: npr_purple_politics_nevada_with_lucia_starbuck
+  url: https://www.kunr.org/podcast/purple-politics-nevada/rss.xml
+  # Purple Politics Nevada with Lucia Starbuck — KUNR Public Radio; latest 2026-10-21
+- name: npr_state_street
+  url: https://www.kuer.org/statestreet/rss.xml
+  # State Street — KUER; latest 2026-10-12
+- name: npr_on_our_watch
+  url: https://feeds.megaphone.fm/KQINC9216694402
+  # On Our Watch — KQED; latest 2026-10-06
+- name: npr_sound_school
+  url: http://feeds.prx.org/HowSound
+  # Sound School Podcast — Rob Rosenthal/PRX/Transom.org; latest 2026-10-06
+- name: npr_issues_ideas
+  url: https://www.kcbx.org/podcast/issues-ideas/rss.xml
+  # Issues & Ideas — KCBX; latest 2026-10-06
+- name: npr_dear_sugars
+  url: https://rss.wbur.org/dearsugar/podcast
+  # Dear Sugars — WBUR; latest 2026-10-03
+- name: npr_garden_for_life
+  url: https://www.ijpr.org/podcast/garden-for-life/rss.xml
+  # Garden for Life — Jefferson Public Radio; latest 2026-10-03
+- name: npr_the_runcast_with_john_richards
+  url: https://www.omnycontent.com/d/playlist/bad5d079-8dcb-4630-8770-aa090049131d/2a8dbc3b-941c-445b-a311-aa400020390f/02c3cab1-f35c-4281-94a8-aa400020391d/podcast.rss
+  # The Runcast with John Richards — KEXP; latest 2026-10-02
+- name: npr_it_s_just_politics
+  url: https://www.omnycontent.com/d/playlist/09bdf4bb-81f7-42fc-8ba4-aad90128d5d3/90a85977-a60d-46f0-9a44-af0e014af341/a4464a19-5e10-47fb-b3ae-af0e014bacb8/podcast.rss
+  # It's Just Politics — Michigan Public; latest 2026-09-30
+- name: npr_classically_training
+  url: https://feeds.publicradio.org/public_feeds/classically-training
+  # Classically Training — American Public Media; latest 2026-09-28
+- name: npr_anything_for_selena
+  url: https://rss.wbur.org/anythingforselena/podcast
+  # Anything For Selena — WBUR & Futuro Studios; latest 2026-09-23
+- name: npr_spectrum
+  url: http://ohio.streamguys1.com/Spectrum/Spectrum.xml
+  # Spectrum — WOUB Public Media; latest 2026-09-22
+- name: npr_north_star_journey
+  url: https://feeds.publicradio.org/public_feeds/north-star-journey
+  # North Star Journey — MPR News; latest 2026-09-21
+- name: npr_beyond_all_repair_the_clancy_trial
+  url: https://rss.wbur.org/violation/podcast
+  # Beyond All Repair: The Clancy Trial — WBUR; latest 2026-09-18
+- name: npr_ask_governor_meyer
+  url: https://whyy-rss.streamguys1.com/podcast/askgovernormeyer.xml
+  # Ask Governor Meyer — WHYY; latest 2026-09-18
+- name: npr_passenger_list
+  url: https://feed.passengerlist.org/
+  # Passenger List — Passenger List and Radiotopia; latest 2026-09-17
+- name: npr_prisoncast
+  url: https://prisoncast.podcasts.wbez.org
+  # Prisoncast! — WBEZ; latest 2026-08-17
 
 tal:
 # This American Life as passages with audio offsets, not one item per episode: the feed (latest 15) is expanded
