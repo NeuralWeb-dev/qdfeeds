@@ -125,7 +125,9 @@ class CosmosStore:
 
     async def items_without_embedding(self, limit: int = 500) -> list[Item]:
         query = (
-            "SELECT TOP @limit * FROM c WHERE c.kind = 'item' AND NOT IS_DEFINED(c.embedding)"
+            # embedding_model, not embedding: /embedding is excluded from the ordinary index, so a
+            # filter on it scans the container (1700 RU per batch against 6).
+            "SELECT TOP @limit * FROM c WHERE c.kind = 'item' AND NOT IS_DEFINED(c.embedding_model)"
         )
         rows = self._items.query_items(query, parameters=[{"name": "@limit", "value": limit}])
         return [_item(row) async for row in rows]
@@ -178,7 +180,10 @@ class CosmosStore:
         sources: frozenset[str] | None = None,
         collections: frozenset[str] | None = None,
     ) -> list[Candidate]:
-        clauses = ["IS_DEFINED(c.embedding)"]
+        # No IS_DEFINED(c.embedding): that path is outside the ordinary index, so the filter turned
+        # the diskANN search into a full scan (31,000 RU for nytnews against 140). Items without a
+        # vector are not in the vector index and never come back from the ORDER BY.
+        clauses: list[str] = []
         params: list[dict[str, Any]] = [
             {"name": "@k", "value": limit},
             {"name": "@v", "value": [float(x) for x in vector]},
@@ -204,7 +209,7 @@ class CosmosStore:
             "SELECT TOP @k c.item_id, c.source, c.source_title, c.url, c.title, c.snippet, "
             "c.published_at, c.published_raw, c.ingested_at, c.collection, c.extra, "
             "VectorDistance(c.embedding, @v) AS score "
-            f"FROM c WHERE {' AND '.join(clauses)} "
+            f"FROM c {'WHERE ' + ' AND '.join(clauses) if clauses else ''} "
             "ORDER BY VectorDistance(c.embedding, @v)"
         )
         # With a collection the query is single-partition (collection is the
@@ -233,7 +238,7 @@ class CosmosStore:
         rows = self._items.query_items(
             "SELECT c.item_id, c.source, c.source_title, c.url, c.title, c.snippet, c.content, c.published_at, "
             "c.published_raw, c.ingested_at, c.collection, c.extra, c.embedding FROM c "
-            "WHERE IS_DEFINED(c.embedding) AND c.ingested_ts > @since",
+            "WHERE IS_DEFINED(c.embedding_model) AND c.ingested_ts > @since",
             parameters=[{"name": "@since", "value": since_ts}], partition_key=collection)
         return [(_item(row), np.asarray(row["embedding"], dtype=np.float32)) async for row in rows]
 
