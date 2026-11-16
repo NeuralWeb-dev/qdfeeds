@@ -16,6 +16,7 @@ class Config:
     refresh_minutes: int
     window_days: int
     candidate_count: int
+    max_candidates: int
     default_limit: int
     max_limit: int
     batch_size: int
@@ -48,6 +49,8 @@ def load_config() -> Config:
         refresh_minutes=int(env.get("QDRSS_REFRESH_MINUTES", "1440")),
         window_days=int(env.get("QDRSS_WINDOW_DAYS", "7")),
         candidate_count=int(env.get("QDRSS_CANDIDATE_COUNT", "40")),
+        # While fewer than `limit` qualify, the ranking model judges the next candidate_count, up to this many.
+        max_candidates=int(env.get("QDRSS_MAX_CANDIDATES", "200")),
         default_limit=int(env.get("QDRSS_DEFAULT_LIMIT", "20")),
         max_limit=int(env.get("QDRSS_MAX_LIMIT", "100")),
         batch_size=int(env.get("QDRSS_RANKING_BATCH_SIZE", "5")),
