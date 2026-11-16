@@ -25,6 +25,7 @@
   .panel { padding-top: 16px; }
   .panel .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chips .try { color: var(--muted); font-size: 13px; padding: 4px 2px; }
   .chips button { background: var(--tag); color: var(--accent); border: 0; border-radius: 16px; padding: 4px 12px; font-size: 13px; }
   .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 18px 0 0; padding: 10px 12px; background: var(--panel); border-radius: 8px; font-size: 14px; color: var(--muted); }
   .bar .acts { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -120,7 +121,7 @@ function buildTabs() {
     input.setAttribute('aria-label', `Search ${v.label}`);
     const form = el('form', { className: 'ask' }, input, el('button', { type: 'submit', textContent: 'Search' }));
     form.addEventListener('submit', e => { e.preventDefault(); run(v.id, input.value.trim()); });
-    const chips = el('div', { className: 'chips' }, ...v.examples.map(x => {
+    const chips = el('div', { className: 'chips' }, el('span', { className: 'try', textContent: `Try in ${v.label}:` }), ...v.examples.map(x => {
       const c = el('button', { type: 'button', textContent: x });
       c.addEventListener('click', () => { input.value = x; run(v.id, x); });
       return c;
