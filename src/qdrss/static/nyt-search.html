@@ -24,9 +24,10 @@
   nav.tabs button[aria-selected=true] { color: var(--fg); border-bottom-color: var(--fg); }
   .panel { padding-top: 16px; }
   .panel .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 6px 10px; margin-top: 10px; }
+  .chips .try { grid-column: 1 / -1; }
   .chips .try { color: var(--muted); font-size: 13px; padding: 4px 2px; }
-  .chips button { background: var(--tag); color: var(--accent); border: 0; border-radius: 16px; padding: 4px 12px; font-size: 13px; }
+  .chips button { background: var(--tag); color: var(--accent); border: 0; border-radius: 8px; padding: 6px 12px; font-size: 13px; text-align: left; line-height: 1.35; cursor: pointer; }
   .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 18px 0 0; padding: 10px 12px; background: var(--panel); border-radius: 8px; font-size: 14px; color: var(--muted); }
   .bar .acts { display: flex; gap: 8px; flex-wrap: wrap; }
   .bar button { padding: 6px 12px; font-size: 14px; }
