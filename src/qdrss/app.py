@@ -294,7 +294,7 @@ def create_app(services: Services) -> Starlette:
                 services.retriever,
                 services.embedder,
                 services.ranker,
-                candidate_count=services.config.candidate_count,
+                candidate_count=services.config.candidate_count, max_candidates=services.config.max_candidates,
                 batch_size=services.config.batch_size,
                 window_days=services.config.window_days,
             )
@@ -340,7 +340,7 @@ def create_app(services: Services) -> Starlette:
             try:
                 matches = await evaluate(
                     feed_request, services.retriever, services.embedder, services.ranker,
-                    candidate_count=services.config.candidate_count, batch_size=services.config.batch_size,
+                    candidate_count=services.config.candidate_count, max_candidates=services.config.max_candidates, batch_size=services.config.batch_size,
                     window_days=services.config.window_days,
                 )
             except RankingError as exc:

@@ -197,7 +197,7 @@ async def test_the_boost_widens_the_pool_and_the_feed_url_carries_it(store: Stor
             return []
     for fresh in (0.0, 180.0):
         await evaluate(FeedRequest("rust", None, 10, "relevant", None, fresh), Spy(), HashEmbeddings(), KeywordRanker(), **OPTS)
-    assert asked == [OPTS["candidate_count"], OPTS["candidate_count"] * 3]
+    assert asked == [OPTS["candidate_count"], OPTS["candidate_count"] * 3]  # no max_candidates: one page
     assert "fresh=180" in ET.fromstring(render_rss(FeedRequest("rust", None, 10, "relevant", None, 180.0), [], "http://x")).find("channel/link").text
 
 
@@ -233,3 +233,53 @@ async def test_collections_limit_the_candidates_and_use_the_items_own_collection
     req = FeedRequest("rust compiler", since=None, limit=10, threshold="relevant", collections=frozenset({"nytnews"}))
     matches = await evaluate(req, index, HashEmbeddings(), KeywordRanker(), **OPTS)
     assert [m.item.source for m in matches] == ["nytnews_archive_x"]
+
+
+class _Pool:
+    """A retriever over fixed candidates, closest first, that records the pool sizes asked for."""
+    def __init__(self, candidates):
+        self.candidates, self.asked = candidates, []
+
+    async def search(self, vector, since, collection, limit, sources=None, collections=None):
+        self.asked.append(limit)
+        return self.candidates[:limit]
+
+
+class _Judge:
+    """Ranks as relevant only items whose title names the answer; records every title it saw."""
+    def __init__(self):
+        self.seen = []
+
+    async def structured(self, instruction, payload):
+        self.seen += [r["title"] for r in payload["rs"]]
+        return {"results": [{"i": r["i"], "m": "relevant" if "bessent" in r["title"] else "exclude", "why": "names it"}
+                            for r in payload["rs"]]}
+
+
+def _story(n_about_the_big_story, answer_at):
+    out = [Candidate(make_item(f"huang{i}", f"huang affair {i}", "huang", ingested=NOW), "vector", 1 - i / 1000)
+           for i in range(n_about_the_big_story)]
+    out.insert(answer_at, Candidate(make_item("answer", "bessent megaspeed", "bessent", ingested=NOW), "vector", 0.5))
+    return out
+
+
+async def test_the_answer_just_past_the_first_page_is_still_judged():
+    # Fifty items about the bigger story are closer than the one that answers the question.
+    pool = _Pool(_story(50, answer_at=45))
+    matches = await evaluate(FeedRequest("bessent role in huang case", None, 10, "relevant"), pool, HashEmbeddings(), _Judge(),
+                             candidate_count=40, batch_size=5, window_days=7, max_candidates=200, now=NOW)
+    assert [m.item.id for m in matches] == ["s:answer"]
+    assert pool.asked == [200]                               # one retrieval serves every page
+
+
+async def test_paging_stops_when_enough_qualify_and_at_the_ceiling():
+    judge = _Judge()
+    many = [Candidate(make_item(f"b{i}", f"bessent {i}", "x", ingested=NOW), "vector", 1 - i / 1000) for i in range(100)]
+    await evaluate(FeedRequest("q", None, 10, "relevant"), _Pool(many), HashEmbeddings(), judge,
+                   candidate_count=40, batch_size=5, window_days=7, max_candidates=200, now=NOW)
+    assert len(judge.seen) == 40                             # the first page gave enough
+    judge = _Judge()
+    none = _story(500, answer_at=499)
+    await evaluate(FeedRequest("q", None, 10, "relevant"), _Pool(none), HashEmbeddings(), judge,
+                   candidate_count=40, batch_size=5, window_days=7, max_candidates=100, now=NOW)
+    assert len(judge.seen) == 100 and len(set(judge.seen)) == 100   # the ceiling, nothing judged twice

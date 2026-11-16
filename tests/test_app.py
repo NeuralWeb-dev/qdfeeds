@@ -22,6 +22,7 @@ def make_services(tmp_path) -> Services:
         refresh_minutes=60,
         window_days=7,
         candidate_count=10,
+        max_candidates=30,
         default_limit=20,
         max_limit=50,
         batch_size=10,

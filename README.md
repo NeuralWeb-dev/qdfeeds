@@ -77,7 +77,8 @@ endpoint serves can be named here; open-weight embedding models come and go on
 OpenRouter, so check their catalogue before switching.
 
 **Cost.** A feed fetch is one embedding call (cached per query) plus
-`candidate_count / batch_size` ranking calls (8 by default). With gpt-oss-20b that is
+`candidate_count / batch_size` ranking calls per page of 40 (8 by default; up to 40
+when few items qualify and every page of the 200 is judged). With gpt-oss-20b that is
 about 0.2 cents per uncached fetch, so **1,000 uncached fetches cost about $2**.
 Rendered feeds are cached per (query, collection, limit) until the next refresh and
 served with an ETag, so repeat polls of the same URL cost nothing and readers that
@@ -89,10 +90,11 @@ send `If-None-Match` get a 304. The corpus embedding is a one-time cost per mode
    **ingested** after that time (and to one collection, if `collection=` is given).
    The mask is applied before top-K, so the candidates are the best *new* items,
    not the new items among the best overall.
-2. Vector retrieval over the masked items yields up to `QDRSS_CANDIDATE_COUNT` (40)
-   candidates. There is no lexical lane.
-3. The ranking model classifies every candidate as `strong`, `relevant`, or
-   excluded. No per-batch quota. If the model call fails the response is 503, not an
+2. Vector retrieval over the masked items yields up to `QDRSS_MAX_CANDIDATES` (200)
+   candidates, closest first. There is no lexical lane.
+3. The ranking model classifies the first `QDRSS_CANDIDATE_COUNT` (40) as `strong`,
+   `relevant`, or excluded; while fewer than `limit` qualify it classifies the next 40,
+   up to all of them. No per-batch quota. If the model call fails the response is 503, not an
    empty feed.
 4. Survivors at or above `threshold` are ordered newest-first by publication time (ingestion
    time for an item with none; item id as tie-break) and capped at `limit`.

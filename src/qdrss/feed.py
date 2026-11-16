@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -65,20 +64,34 @@ async def evaluate(
     candidate_count: int,
     batch_size: int,
     window_days: int,
+    max_candidates: int | None = None,
     now: datetime | None = None,
 ) -> list[Match]:
+    """The ranking model judges the closest `candidate_count` candidates; while fewer than `limit` of them
+    qualify it judges the next `candidate_count`, up to `max_candidates` in all. A fixed cut would drop
+    the item that answers the question whenever a bigger story fills the closest places: one vector per
+    article captures what it is mostly about, so a question naming a second person ("Bessent's role in
+    the Huang case") sits nearer to fifty articles about the first than to the one about both."""
     # `now` is injectable so the default window can be tested against fixed
     # timestamps; reading the clock here made those tests expire a week after
     # their fixture date.
-    since = request.since or (now or datetime.now(UTC)) - timedelta(days=window_days)
+    now = now or datetime.now(UTC)
+    since = request.since or now - timedelta(days=window_days)
     vector = await _query_vector(embedder, request.q)
-    pool = candidate_count * FRESH_POOL if request.fresh else candidate_count
+    ceiling = max(max_candidates or candidate_count, candidate_count)
+    # One retrieval for every page: asking again for a wider pool each round costs more each time
+    # (TOP 600 took a minute in Cosmos). A freshness boost orders a pool three times the first page.
+    pool = max(ceiling, candidate_count * FRESH_POOL) if request.fresh else ceiling
     candidates = one_per_url(await retriever.search(vector, since, request.collection, pool, request.sources, request.collections))
     if request.fresh:
-        candidates = freshen(candidates, request.fresh, candidate_count, now or datetime.now(UTC))
-    matches = await classify(request.q, candidates, ranker, batch_size)
-    if request.threshold == "strong":
-        matches = [m for m in matches if m.category == "strong"]
+        candidates = by_blend(candidates, request.fresh, now)
+    candidates = candidates[:ceiling]
+    matches: list[Match] = []
+    for start in range(0, len(candidates), candidate_count):
+        judged = await classify(request.q, candidates[start : start + candidate_count], ranker, batch_size)
+        matches += [m for m in judged if request.threshold != "strong" or m.category == "strong"]
+        if len(matches) >= request.limit:
+            break
     # Newest first by publication time, the date each item shows as its pubDate;
     # ingestion time stands in for an item without one, and the id breaks ties so
     # equal timestamps order the same way on every fetch. (Ordering by ingestion
@@ -107,13 +120,11 @@ FRESH_POOL = 3          # a freshness boost chooses its candidates from this man
 FRESH_WEIGHT = 0.5      # the most recent item gains half the pool's rank range over an old one equally close
 
 
-def freshen(candidates: list[Candidate], half_life_days: float, keep: int, now: datetime) -> list[Candidate]:
-    """The `keep` candidates with the best blend of closeness and recency. Candidates arrive closest first, so closeness is the rank
+def by_blend(candidates: list[Candidate], half_life_days: float, now: datetime) -> list[Candidate]:
+    """Candidates by their blend of closeness and recency, best first. Candidates arrive closest first, so closeness is the rank
     (1 for the closest, 0 for the last): the retrievers score on different scales, and a rank does not depend on the scale. Recency is
-    0.5 ** (age / half-life), 1 for an item published now. A boost only changes which items the ranking model sees; it still judges
-    each one, so a recent item that does not fit the question is not returned."""
-    if len(candidates) <= keep:
-        return candidates
+    0.5 ** (age / half-life), 1 for an item published now. A boost only changes the order in which the ranking model sees items; it
+    still judges each one, so a recent item that does not fit the question is not returned."""
     n = len(candidates)
 
     def blend(rank_and_candidate):
@@ -121,8 +132,15 @@ def freshen(candidates: list[Candidate], half_life_days: float, keep: int, now: 
         age_days = max(0.0, (now - published(c.item)).total_seconds() / 86400)
         return (1 - rank / n) + FRESH_WEIGHT * 0.5 ** (age_days / half_life_days)
 
-    best = sorted(enumerate(candidates), key=blend, reverse=True)[:keep]
-    return [c for _, c in sorted(best, key=lambda rc: rc[0])]
+    return [c for _, c in sorted(enumerate(candidates), key=blend, reverse=True)]
+
+
+def freshen(candidates: list[Candidate], half_life_days: float, keep: int, now: datetime) -> list[Candidate]:
+    """The `keep` candidates with the best blend of closeness and recency (see by_blend), closest first."""
+    if len(candidates) <= keep:
+        return candidates
+    best = set(map(id, by_blend(candidates, half_life_days, now)[:keep]))
+    return [c for c in candidates if id(c) in best]
 
 
 def published(item) -> datetime:
