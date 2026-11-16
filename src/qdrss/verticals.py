@@ -2,7 +2,7 @@
 NLWeb backend.
 
 A qdrss vertical searches only its scope, which is the strongest bias there is: a Travel
-search returns Travel articles. A scope is either whole collections (All, Audio), which
+search returns Travel articles. A scope is either whole collections (All, Podcasts), which
 also reaches the archive-only sources scripts/backfill_nyt_news.py creates for sections
 with no feed (nytnews_archive_<section>), or sources named by selectors resolved against
 the manifest: a glob over source names (`nytnews_athletic_*`) or an exact name. The few
@@ -66,7 +66,7 @@ VERTICALS: tuple[Vertical, ...] = (
                                     "nyt_interesting_times", "nyt_the_opinions", "nyt_matter_of_opinion",
                                     "nyt_the_argument", "nyt_sway", "nyt_the_choice"),
              examples=("The case for and against a wealth tax", "What liberals get wrong about immigration")),
-    Vertical("audio", "Audio", collections=("nytimes",),
+    Vertical("audio", "Podcasts", collections=("nytimes",),  # id kept: feed URLs carry vertical=audio
              examples=("The Supreme Court and presidential power", "Taylor Swift")),
     Vertical("cooking", "Cooking", nlweb_url="https://nlweb-recipes-3zepccvmbq-uc.a.run.app/ask",
              nlweb_site="nytimes",
