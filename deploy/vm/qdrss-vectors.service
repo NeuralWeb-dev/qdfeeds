@@ -1,0 +1,13 @@
+[Unit]
+Description=qdrss vector search (in-memory NYT collections) for the qdrss web app
+After=network-online.target
+
+[Service]
+WorkingDirectory=/home/guha/services/qdrss-vectors
+EnvironmentFile=/home/guha/.config/qdrss-vectors.env
+ExecStart=/home/guha/services/qdrss-vectors/.venv/bin/qdrss-vectors
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

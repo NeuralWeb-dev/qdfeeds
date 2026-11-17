@@ -48,11 +48,11 @@ async def test_searches_memory_and_adds_what_came_after_the_snapshot(tmp_path):
     assert [c.item.id for c in got][0] == "s:3" and cosmos.searched == 0
 
 
-async def test_other_collections_and_failed_snapshots_use_cosmos(tmp_path):
+async def test_other_collections_and_failed_snapshots_go_to_the_store(tmp_path):
     cosmos = FakeCosmos()
     r = MemoryRetriever(cosmos, {"s": "tal"}, ["tal"], str(tmp_path / "missing"))
     await r.load()
-    assert "using Cosmos" in r.status["tal"]
+    assert "not in memory" in r.status["tal"]
     await r.search(np.zeros(2, dtype=np.float32), None, "tal", 5)
     await r.search(np.zeros(2, dtype=np.float32), None, None, 5)
     assert cosmos.searched == 2

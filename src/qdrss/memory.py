@@ -3,11 +3,10 @@
 A collection that is small, grows slowly and is read a lot (This American Life: 28k passages, a new episode a
 week) gains nothing from a database round trip on every query and is exposed to its throttling and timeouts. Its
 passages and vectors are loaded once at startup from a snapshot (scripts/export_snapshot.py) and searched with the
-same in-memory Index the SQLite mode uses. Whatever was ingested after the snapshot is fetched from Cosmos at
-startup and again every few minutes, so the snapshot only has to be rebuilt to keep that catch-up small.
-
-Other collections, and any query without a collection, still go to Cosmos. If a snapshot cannot be loaded the
-collection falls back to Cosmos and says so in the log and in /health, rather than failing the query.
+same in-memory Index the SQLite mode uses. Whatever was stored or embedded after the snapshot is read from the
+corpus store (Postgres) at startup and again every few minutes, so the snapshot only has to be rebuilt to keep that
+catch-up small. A collection that is not in memory goes to the store's own search, which Postgres does not offer:
+the VM loads every collection.
 """
 
 from __future__ import annotations
@@ -70,9 +69,10 @@ async def _read(location: str, name: str) -> bytes:
 
 
 class MemoryRetriever:
-    def __init__(self, cosmos, source_collections: dict[str, str], collections: list[str], snapshot: str,
+    def __init__(self, store, source_collections: dict[str, str], collections: list[str], snapshot: str,
                  catch_up_seconds: float = 300):
-        self.cosmos = cosmos
+        # The corpus store new items are read from: Postgres (pgstore.py, items_changed) or Cosmos (items_since).
+        self.store = store
         self.source_collections = source_collections
         self.names = collections
         self.snapshot = snapshot
@@ -90,7 +90,9 @@ class MemoryRetriever:
                 started = time.monotonic()
                 items, matrix = parse_snapshot(await _read(self.snapshot, f"{name}.jsonl.gz"),
                                                await _read(self.snapshot, f"{name}.npy"))
-                self._floor[name] = max((i.ingested_at.timestamp() for i in items), default=0.0)
+                # Catch-up starts an hour before the newest item in the snapshot: an item stored or embedded
+                # while the snapshot was being taken is read again rather than missed (the id set drops repeats).
+                self._floor[name] = max((i.ingested_at.timestamp() for i in items), default=0.0) - 3600
                 self.indexes[name] = Index.with_room(items, matrix, self.source_collections)
                 self._ids[name] = {i.id for i in items}
                 del items, matrix
@@ -98,8 +100,8 @@ class MemoryRetriever:
                 self.status[name] = f"{len(self.indexes[name])} items in memory"
                 logger.info("collection %s: %s (%.1fs)", name, self.status[name], time.monotonic() - started)
             except Exception as exc:  # noqa: BLE001 - serve from Cosmos instead, visibly
-                self.status[name] = f"snapshot failed ({type(exc).__name__}: {str(exc)[:100]}); using Cosmos"
-                logger.exception("collection %s: could not load the snapshot; using Cosmos", name)
+                self.status[name] = f"snapshot failed ({type(exc).__name__}: {str(exc)[:100]}); not in memory"
+                logger.exception("collection %s: could not load the snapshot", name)
 
     async def catch_up(self, name: str) -> int:
         """Add what Cosmos holds from after the snapshot and is not in memory yet."""
@@ -107,17 +109,28 @@ class MemoryRetriever:
             self._checked[name] = time.monotonic()
             index = self.indexes[name]
             known = self._ids[name]
-            fresh = [(i, v) for i, v in await self.cosmos.items_since(name, self._floor[name]) if i.id not in known]
+            if hasattr(self.store, "items_changed"):
+                # Postgres: inserted or embedded after the floor, by the database's clock; the floor becomes the
+                # time of this read, so an item embedded long after it was ingested is still picked up.
+                changed, floor = await self.store.items_changed(name, self._floor[name])
+            else:
+                changed, floor = await self.store.items_since(name, self._floor[name]), None
+            fresh = [(i, v) for i, v in changed if i.id not in known]
             fresh = list({i.id: (i, v) for i, v in fresh}.values())
             if fresh:
                 self.indexes[name] = index.extended([i for i, _ in fresh], np.vstack([v for _, v in fresh]))
                 known.update(i.id for i, _ in fresh)
-                self._floor[name] = max(self._floor[name], *(i.ingested_at.timestamp() for i, _ in fresh))
+                if floor is None:
+                    self._floor[name] = max(self._floor[name], *(i.ingested_at.timestamp() for i, _ in fresh))
+            if floor is not None:
+                self._floor[name] = floor
                 logger.info("collection %s: %d items added since the snapshot", name, len(fresh))
             return len(fresh)
 
     async def search(self, vector: np.ndarray, since: datetime | None, collection: str | None, limit: int,
                      sources: frozenset[str] | None = None, collections: frozenset[str] | None = None) -> list[Candidate]:
+        if not collection and collections is None and self.indexes and len(self.indexes) == len(self.names):
+            collections = frozenset(self.indexes)  # every collection, and every one of them is in memory
         if not collection and collections is not None:
             # A tab over several collections (All: nytnews and nytimes): each from memory if it is loaded, else
             # from Cosmos, merged by score. Scores are comparable: the same embedding model and cosine scale.
@@ -126,7 +139,7 @@ class MemoryRetriever:
             return sorted((c for run in runs for c in run), key=lambda c: -c.score)[:limit]
         index = self.indexes.get(collection or "")
         if index is None:
-            return await self.cosmos.search(vector, since, collection, limit, sources, collections)
+            return await self.store.search(vector, since, collection, limit, sources, collections)
         if time.monotonic() - self._checked[collection] > self.catch_up_seconds and not self._busy[collection].locked():
             asyncio.create_task(self._safe_catch_up(collection))
         return await index.search(vector, since, collection, limit, sources, collections)

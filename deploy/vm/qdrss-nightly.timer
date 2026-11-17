@@ -1,0 +1,9 @@
+[Unit]
+Description=Run qdrss-nightly at 09:30 UTC (after the news is quiet in the US night)
+
+[Timer]
+OnCalendar=*-*-* 09:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target
