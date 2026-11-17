@@ -284,7 +284,10 @@ class Threads {
 function idb(req) { return new Promise((ok, fail) => { req.onsuccess = () => ok(req.result); req.onerror = () => fail(req.error); }); }
 
 // ------------------------------------------------------------ state
-let verticals = [], tab = 'all', threads = null, thread = null, turns = [], busy = false;
+let verticals = [], tab = 'all', threads = null, thread = null, turns = [], busy = false, inFlight = null;
+// Leaving a search (another tab, a new search, another conversation) cancels the question still running:
+// its answer would otherwise land on a page that has moved on.
+function cancelInFlight() { if (inFlight) { inFlight.abort(); inFlight = null; } busy = false; $('ask').disabled = false; }
 const vertical = id => verticals.find(v => v.id === id) || verticals[0];
 
 function selectTab(id) {
@@ -439,10 +442,12 @@ async function ask(question) {
   view.status(v.feed ? `Searching ${v.label}: reading candidates and judging each one…` : `Asking ${v.label}…`);
   const started = performance.now();
   const summarize = $('mode').value === 'summarize';
+  const controller = inFlight = new AbortController();
   t.mode = $('mode').value; t.model = $('model').value;
   try {
     const r = await fetch('/api/search', { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ q: question, vertical: v.id, previous_queries: previous, previous_results: shown, summarize, ranking_model: t.model }) });
+      body: JSON.stringify({ q: question, vertical: v.id, previous_queries: previous, previous_results: shown, summarize, ranking_model: t.model }),
+      signal: controller.signal });
     if (!r.ok) { let m = `HTTP ${r.status}`; try { m = (await r.json()).error || m; } catch {} throw new Error(m); }
     const reader = r.body.getReader(), dec = new TextDecoder();
     let buf = '';
@@ -471,13 +476,14 @@ async function ask(question) {
     view.bar();
     topCost();
   } catch (err) {
+    if (controller.signal.aborted) return;  // left behind on purpose: not shown, not saved
     t.error = err.message;
     view.noAnswer();
     view.status(`Search failed: ${err.message}. Try again in a moment.`);
   } finally {
-    busy = false; $('ask').disabled = false;
+    if (inFlight === controller) { inFlight = null; busy = false; $('ask').disabled = false; }
   }
-  await remember(t);
+  if (!controller.signal.aborted) await remember(t);
 }
 
 async function remember(t) {
@@ -500,6 +506,7 @@ async function forget(t, node) {
 }
 
 function newSearch() {
+  cancelInFlight();
   thread = null; turns = [];
   $('thread').replaceChildren();
   $('intro').hidden = false;
@@ -570,7 +577,7 @@ async function listConversations() {
 
 // Reopening shows what was shown, from the stored turns; nothing is searched again.
 async function openThread(item) {
-  if (busy) return;
+  cancelInFlight();
   thread = item;
   turns = await threads.turns(item.id);
   $('thread').replaceChildren();
@@ -621,8 +628,8 @@ if (window.visualViewport) {
   for (const v of verticals) {
     const b = el('button', { type: 'button', textContent: v.label, id: `tab-${v.id}` });
     b.setAttribute('role', 'tab');
-    // A tab sets the section the next question searches; the conversation so far stays.
-    b.addEventListener('click', () => { selectTab(v.id); writeUrl(turns.length ? (turns.at(-1).interpretedAs || turns.at(-1).question) : ''); $('query').focus(); });
+    // Another tab starts a new search there; the conversation left behind stays in the history.
+    b.addEventListener('click', () => { if (v.id === tab && !turns.length) return; newSearch(); selectTab(v.id); writeUrl(''); });
     $('tabs').append(b);
   }
   try {
