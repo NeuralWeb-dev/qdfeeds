@@ -162,9 +162,17 @@ searched exactly with numpy, off the event loop. A tab over several collections 
 and merges by score. Whatever was ingested after a snapshot is fetched from Cosmos at
 startup and every five minutes, appended into spare room in the vector buffer. Cosmos stays the
 store that ingest writes to. Rebuild snapshots from a Cosmos export with
-`scripts/snapshot_from_export.py` (an old snapshot only lengthens the catch-up). The service
-keeps one instance warm (`--min-instances 1`, CPU always allocated) so the multi-GB load is
-paid at deploys, not on visits.
+`scripts/snapshot_from_export.py` (an old snapshot only lengthens the catch-up).
+
+In production this runs on the neuralweb VM, not in Cloud Run: `qdrss-vectors` (`vectors.py`,
+a systemd user unit, `~/.config/systemd/user/qdrss-vectors.service`, env in
+`~/.config/qdrss-vectors.env`) holds the collections (~6 GB) and answers `POST /search` on the
+VM's internal address 10.128.0.2:8090 with a shared token. The web app has
+`QDRSS_VECTOR_URL`/`QDRSS_VECTOR_TOKEN` set and reaches it through Direct VPC egress
+(`--network default --subnet default --vpc-egress private-ranges-only`); if the VM does not
+answer it searches Cosmos instead and counts that in `/health` (`vector_service.fallbacks`).
+Deploy the VM side with `git pull && .venv/bin/pip install . && systemctl --user restart
+qdrss-vectors` in `~/services/qdrss-vectors`; it takes about a minute to load.
 
 ## Sources
 
