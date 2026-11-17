@@ -1,7 +1,7 @@
 """Vector search as its own service on the neuralweb VM, and the web app's client for it.
 
 The search page's collections are searched exactly in memory (memory.py): about 6 GB of vectors and items, loaded
-from the GCS snapshots and caught up from Cosmos every five minutes. Held in the Cloud Run service, that needed an
+from the GCS snapshots and caught up from Postgres (pgstore.py) every five minutes. Held in the Cloud Run service, that needed an
 always-on 4 vCPU / 12 GiB instance; the VM already runs and has the room. So the VM runs `qdrss-vectors`, listening
 only on its internal address, and the web app (in the VPC through Direct VPC egress) asks it over HTTP.
 
@@ -114,7 +114,6 @@ def main() -> None:
     from dotenv import load_dotenv
 
     from .app import configure_logging
-    from .cosmos import CosmosStore
     from .ingest import load_sources
     from .memory import MemoryRetriever
 
@@ -123,7 +122,14 @@ def main() -> None:
     env = os.environ
     token = env["QDRSS_VECTOR_TOKEN"]
     sources = load_sources(Path(env.get("QDRSS_SOURCES", "sources.yaml")))
-    store = CosmosStore(env["COSMOS_ENDPOINT"], env["COSMOS_KEY"], env.get("COSMOS_DATABASE", "qdrss"))
+    if env.get("QDRSS_PG_HOST"):
+        from .pgstore import PostgresStore
+
+        store = PostgresStore(env["QDRSS_PG_HOST"], env["QDRSS_PG_PASSWORD"], max_size=2)
+    else:
+        from .cosmos import CosmosStore
+
+        store = CosmosStore(env["COSMOS_ENDPOINT"], env["COSMOS_KEY"], env.get("COSMOS_DATABASE", "qdrss"))
     memory = MemoryRetriever(store, {s.name: s.collection for s in sources},
                              [c for c in env["QDRSS_MEMORY_COLLECTIONS"].split(",") if c.strip()],
                              env["QDRSS_MEMORY_SNAPSHOT"])

@@ -1,0 +1,8 @@
+[Unit]
+Description=qdrss nightly: Postgres backup to GCS and fresh vector snapshots
+
+[Service]
+Type=oneshot
+EnvironmentFile=/home/guha/.config/qdrss-vectors.env
+ExecStart=/home/guha/services/qdrss-vectors/deploy/vm/qdrss-nightly.sh
+Nice=10

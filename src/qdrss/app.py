@@ -91,8 +91,15 @@ class Services:
         self.collections = {s.name: s.collection for s in self.sources}
         # Each search-page tab's scope (collections or sources), resolved once.
         self.verticals = {v.id: resolve_vertical(v, self.sources) for v in VERTICALS.values() if not v.nlweb_url}
-        self.cosmos = bool(config.cosmos_endpoint)
-        if self.cosmos:
+        # A shared store (Postgres on the VM, or Cosmos before it) is written by the ingest job and read by every
+        # process; SQLite is local to this one (tests, offline runs).
+        self.store_kind = "postgres" if config.pg_host else "cosmos" if config.cosmos_endpoint else "sqlite"
+        self.shared = self.store_kind != "sqlite"
+        if self.store_kind == "postgres":
+            from .pgstore import PostgresStore
+
+            self.store = PostgresStore(config.pg_host, config.pg_password)
+        elif self.store_kind == "cosmos":
             from .cosmos import CosmosStore
 
             self.store = CosmosStore(config.cosmos_endpoint, config.cosmos_key, config.cosmos_database)
@@ -102,11 +109,11 @@ class Services:
             self.store = Store(config.db_path)
         self.memory = None
         self.remote = None
-        if self.cosmos and config.vector_url:
+        if self.shared and config.vector_url:
             from .vectors import RemoteRetriever
 
             self.remote = RemoteRetriever(config.vector_url, config.vector_token)
-        elif self.cosmos and config.memory_collections and config.memory_snapshot:
+        elif self.shared and config.memory_collections and config.memory_snapshot:
             from .memory import MemoryRetriever
 
             self.memory = MemoryRetriever(self.store, self.collections, list(config.memory_collections),
@@ -119,7 +126,7 @@ class Services:
         # Rendered feeds, keyed by the request. A feed only changes when the
         # corpus does, so entries live until the next refresh completes (or the
         # TTL, whichever is first). Readers poll the same URL for months; without
-        # this every poll pays a Cosmos vector query and eight LLM calls.
+        # this every poll pays a vector search and eight LLM calls.
         self._feeds: dict[tuple, tuple[float, bytes, str]] = {}
         self.feed_ttl = config.refresh_minutes * 60
 
@@ -146,13 +153,13 @@ class Services:
             return self.remote
         if self.memory:
             return self.memory
-        return self.store if self.cosmos else self.index  # type: ignore[return-value]
+        return self.store if self.shared else self.index  # type: ignore[return-value]
 
     async def setup(self) -> None:
         await self.store.setup()
         if self.memory:
             await self.memory.load()
-        if self.cosmos:
+        if self.shared:
             self.ready_at = datetime.now(UTC)
 
     async def refresh_once(self) -> None:
@@ -165,7 +172,7 @@ class Services:
             "errors": {o.source.name: o.error for o in outcomes if o.error},
         }
         try:
-            if self.cosmos:
+            if self.shared:
                 await self.embed_missing()
             else:
                 # Rebuild even when nothing changed: a failed previous build gets
@@ -178,7 +185,7 @@ class Services:
         self._feeds.clear()
 
     async def embed_missing(self) -> int:
-        """Cosmos mode: embed items that arrived without a vector, in batches."""
+        """Shared-store mode: embed items that arrived without a vector, in batches."""
         total = 0
         while True:
             items = await self.store.items_without_embedding(100)
@@ -199,7 +206,7 @@ class Services:
         out: dict[str, dict] = {}
         for source in self.sources:
             out.setdefault(source.collection, {"sources": 0, "items": 0})["sources"] += 1
-        if self.cosmos:
+        if self.shared:
             for name, n in (await self.store.counts_by_collection(list(out))).items():
                 out.setdefault(name, {"sources": 0, "items": 0})["items"] = n
         else:
@@ -210,7 +217,7 @@ class Services:
         return out
 
     async def refresh_in_subprocess(self) -> None:
-        """Cosmos mode: run `qdrss-ingest` as a child process.
+        """Shared-store mode: run `qdrss-ingest` as a child process.
 
         Fetching and parsing 300 feeds (some 50 MB) and embedding what is new is
         CPU-bound work that would stall the event loop on a small instance; in
@@ -242,7 +249,7 @@ class Services:
     async def _loop(self) -> None:
         while True:
             try:
-                if self.cosmos:
+                if self.shared:
                     await self.refresh_in_subprocess()
                 else:
                     await self.refresh_once()
@@ -251,7 +258,7 @@ class Services:
             await asyncio.sleep(self.config.refresh_minutes * 60)
 
     def start(self) -> None:
-        if self.config.ingest_in_app or not self.cosmos:
+        if self.config.ingest_in_app or not self.shared:
             self._task = asyncio.create_task(self._loop())
 
     async def stop(self) -> None:
@@ -552,7 +559,7 @@ def create_app(services: Services) -> Starlette:
                 "sources_summary": {"total": len(sources), "failing": len(failing), "failing_names": failing[:20],
                                     "last_fetch_at": max(fetched) if fetched else None},
                 "note": "Request counters are for this instance since it started; a restart resets them and several instances each count their own.",
-                "store": "cosmos" if services.cosmos else "sqlite",
+                "store": services.store_kind,
                 "ranking_providers": getattr(services.ranker, "health", None) and services.ranker.health.report() or {},
                 "in_memory": services.memory.status if services.memory else {},
                 "vector_service": services.remote.status if services.remote else None,

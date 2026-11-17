@@ -137,7 +137,17 @@ is for the rewritten query and always ranks with the default model.
 - `pubDate` is the source publication time. `<qd:category>` and `<qd:source>` carry
   the verdict and the source name.
 
-## Storage: Cosmos DB or SQLite
+## Storage: Postgres on the VM (production), Cosmos DB (before), or SQLite
+
+**Production (2026-11-17): no Microsoft service in the path.** Items, vectors and fetch state live in
+Postgres on the neuralweb VM (`pgstore.py`, schema `pg_schema.sql`; `QDRSS_PG_HOST=10.128.0.2`,
+`QDRSS_PG_PASSWORD`). The ingest job and the web app reach it through Direct VPC egress; the
+VM's vector service catches up from it. Postgres does no vector search. A `pg_dump` goes to
+`gs://neuralweb-vm-backup/postgres/` nightly and the snapshots are rebuilt from Postgres
+(`deploy/vm/`). The Cosmos container was exported (`scripts/export_cosmos.py`) and loaded
+(`scripts/load_postgres.py`), the last delta at the cutover. The Cosmos notes below are history.
+
+## Cosmos DB or SQLite (before the cutover)
 
 Two modes behind one interface, chosen by whether `COSMOS_ENDPOINT` is set.
 
