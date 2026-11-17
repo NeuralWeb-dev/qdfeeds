@@ -154,6 +154,18 @@ Two modes behind one interface, chosen by whether `COSMOS_ENDPOINT` is set.
 - **SQLite** (default, tests, offline): items and cached vectors in one file, an
   in-memory matrix rebuilt after each refresh.
 
+**Collections served from memory.** Cosmos vector queries over the NYT collections took
+0.5–20 s each (2026-11-17), so the collections the search page reads
+(`QDRSS_MEMORY_COLLECTIONS=tal,nytnews,nytimes,american_football,soccer`) are loaded at
+startup from snapshots in `QDRSS_MEMORY_SNAPSHOT` (`gs://neuralweb-qdrss-snapshots`) and
+searched exactly with numpy, off the event loop. A tab over several collections searches each
+and merges by score. Whatever was ingested after a snapshot is fetched from Cosmos at
+startup and every five minutes, appended into spare room in the vector buffer. Cosmos stays the
+store that ingest writes to. Rebuild snapshots from a Cosmos export with
+`scripts/snapshot_from_export.py` (an old snapshot only lengthens the catch-up). The service
+keeps one instance warm (`--min-instances 1`, CPU always allocated) so the multi-GB load is
+paid at deploys, not on visits.
+
 ## Sources
 
 `sources.yaml` lists the upstream feeds, grouped into collections. They are fetched at
