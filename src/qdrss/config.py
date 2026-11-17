@@ -24,6 +24,7 @@ class Config:
     openrouter_key: str
     openrouter_base_url: str
     ranking_model: str
+    writing_model: str
     embedding_model: str
     provider_sort: str
     cosmos_endpoint: str
@@ -58,6 +59,8 @@ def load_config() -> Config:
         openrouter_key=env.get("OPENROUTER_API_KEY", ""),
         openrouter_base_url=env.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
         ranking_model=env.get("OPENROUTER_RANKING_MODEL", "openai/gpt-oss-20b"),
+        # Follow-up rewrites and summaries on the search page, as in the NLWeb samples.
+        writing_model=env.get("OPENROUTER_WRITING_MODEL", "openai/gpt-oss-120b"),
         embedding_model=env.get("OPENROUTER_EMBEDDING_MODEL", "openai/text-embedding-3-small"),
         provider_sort=env.get("OPENROUTER_RANKING_PROVIDER_SORT", "throughput"),
         cosmos_endpoint=env.get("COSMOS_ENDPOINT", ""),

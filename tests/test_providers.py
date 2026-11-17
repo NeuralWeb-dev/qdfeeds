@@ -93,3 +93,21 @@ async def test_new_calls_skip_avoided_providers_and_failures_are_recorded():
     assert r.health.avoid() == ["Groq"]
     await r.structured("i", {})
     assert r.client.calls[-1]["extra_body"]["provider"]["ignore"] == ["Groq"]
+
+
+async def test_calls_are_counted_in_the_requests_ledger_under_their_step():
+    from qdrss import usage
+
+    r = ranker([reply('{"results": []}'), reply('{"summary": "s"}')])
+    r.client.replies[0].usage = {"prompt_tokens": 50, "completion_tokens": 10, "cost": 0.0002}
+    r.client.replies[0].model = "openai/gpt-oss-20b"
+    ledger = usage.UsageLedger()
+    token = usage.CURRENT.set(ledger)
+    try:
+        await r.structured("i", {})
+        await r.structured("i", {}, phase="summary")
+    finally:
+        usage.CURRENT.reset(token)
+    rows = {row["model"]: row for row in ledger.wire()["models"]}
+    assert rows["openai/gpt-oss-20b"]["phases"] == {"ranking": 1} and rows["openai/gpt-oss-20b"]["cost"] == 0.0002
+    assert rows["m"]["phases"] == {"summary": 1} and rows["m"]["unpriced_calls"] == 1

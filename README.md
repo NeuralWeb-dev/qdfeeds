@@ -45,6 +45,7 @@ OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_RANKING_MODEL=openai/gpt-oss-20b
 OPENROUTER_EMBEDDING_MODEL=openai/text-embedding-3-small
 OPENROUTER_RANKING_PROVIDER_SORT=throughput
+OPENROUTER_WRITING_MODEL=openai/gpt-oss-120b   # search page: follow-up rewrites and summaries
 ```
 
 Without a key the server falls back to hash embeddings and a keyword ranker: the
@@ -98,6 +99,25 @@ send `If-None-Match` get a 304. The corpus embedding is a one-time cost per mode
    empty feed.
 4. Survivors at or above `threshold` are ordered newest-first by publication time (ingestion
    time for an item with none; item id as tie-break) and capped at `limit`.
+
+## The NYT search page as a conversation
+
+`/nyt/search` is a conversation, kept in the browser (IndexedDB) and listed on the left; a
+conversation that starts with a question already in the list replaces the older one. Each
+question is one `POST /api/search` with the tab, the conversation's earlier queries and the
+last turn's result titles, the answer mode (`summarize` or list) and an optional ranking
+model from `/api/models`. The harness then:
+
+1. rewrites a follow-up to stand alone (one call to the writing model, `converse.py`; a failed
+   rewrite is said on the page and the question is searched as typed);
+2. searches the tab exactly as a feed does, with the chosen ranking model (Cooking and
+   Wirecutter ask their NLWeb backends, passing the mode and model on);
+3. streams JSON lines: `query`, `results`, then `summary` (one call to the writing model over
+   the top 12) or `summary_error`, then `usage`: calls, tokens, model time and dollars by model
+   and step, as OpenRouter reported them (`usage.py`; an NLWeb backend's own usage is merged in).
+
+A repeated question is served from the cache and its usage says so. The feed URL a turn offers
+is for the rewritten query and always ranks with the default model.
 
 ## Semantics to know
 

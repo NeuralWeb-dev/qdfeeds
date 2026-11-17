@@ -2,38 +2,73 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Search the Times</title>
 <style>
-  :root { --fg: #1a1a1a; --muted: #666; --line: #e2e2e2; --bg: #fff; --panel: #f7f7f5; --accent: #0b5fff; --tag: #eef3ff; --ok: #0a7a3d; }
+  :root { --fg: #1a1a1a; --muted: #666; --line: #e2e2e2; --bg: #fff; --panel: #f7f7f5; --accent: #0b5fff; --tag: #eef3ff; --ok: #0a7a3d; --warn: #8a5a00; --side: 272px; }
   @media (prefers-color-scheme: dark) {
-    :root { --fg: #eee; --muted: #9a9a9a; --line: #2e2e2e; --bg: #111; --panel: #1a1a1a; --accent: #6ea0ff; --tag: #1d2a44; --ok: #5ccf8e; }
+    :root { --fg: #eee; --muted: #9a9a9a; --line: #2e2e2e; --bg: #111; --panel: #1a1a1a; --accent: #6ea0ff; --tag: #1d2a44; --ok: #5ccf8e; --warn: #ffd27a; }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--fg); background: var(--bg); }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 16px 64px; }
-  h1 { font: 600 28px/1.2 Georgia, "Times New Roman", serif; margin: 0 0 4px; letter-spacing: -.01em; }
-  .sub { color: var(--muted); margin: 0 0 20px; font-size: 15px; max-width: 680px; }
-  form.ask { display: flex; gap: 8px; }
-  input[type=text], input[type=email] { flex: 1; min-width: 0; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  html, body { height: 100%; }
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--fg); background: var(--bg); overflow: hidden; }
   button { font: inherit; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
   button.ghost { background: transparent; color: var(--accent); }
+  button.icon { background: transparent; color: var(--fg); border: 0; padding: 6px 9px; font-size: 18px; line-height: 1; }
+  button.link { background: none; border: 0; color: var(--accent); padding: 0; font-size: inherit; }
   button:disabled { opacity: .6; cursor: wait; }
-  nav.tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--line); margin: 8px 0 0; scrollbar-width: thin; }
+  input, textarea, select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  [hidden] { display: none !important; }
+
+  .shell { display: flex; height: var(--app-height, 100dvh); }
+  /* ---- the conversation list */
+  aside { flex: none; width: var(--side); display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--panel); min-height: 0; }
+  body.side-closed aside { display: none; }
+  .side-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 10px 6px 14px; }
+  .side-head h2 { font-size: 14px; margin: 0; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  aside input[type=search] { margin: 4px 10px 8px; padding: 7px 10px; font-size: 14px; }
+  .convs { flex: 1; overflow-y: auto; padding: 0 6px; }
+  .conv { position: relative; border-radius: 8px; padding: 7px 30px 7px 8px; }
+  .conv:hover, .conv.active { background: var(--bg); }
+  .conv .open { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0; color: var(--fg); font-size: 14px; line-height: 1.35; }
+  .conv .when { font-size: 12px; color: var(--muted); }
+  .conv .del { position: absolute; right: 4px; top: 6px; background: none; border: 0; color: var(--muted); padding: 2px 6px; font-size: 16px; visibility: hidden; }
+  .conv:hover .del, .conv.active .del { visibility: visible; }
+  .convs .empty { color: var(--muted); font-size: 14px; padding: 8px; }
+  .side-foot { display: flex; justify-content: space-between; padding: 10px 14px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+
+  /* ---- the conversation */
+  main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  header.top { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  header.top h1 { font: 600 20px/1.2 Georgia, "Times New Roman", serif; margin: 0 6px 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header.top .spacer { flex: 1; }
+  header.top a { color: var(--accent); font-size: 14px; white-space: nowrap; }
+  #cost-open { padding: 5px 10px; font-size: 13px; background: var(--tag); color: var(--accent); border: 0; white-space: nowrap; }
+  nav.tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--line); padding: 0 12px; scrollbar-width: thin; flex: none; }
   nav.tabs button { flex: none; background: transparent; color: var(--muted); border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 12px; font-size: 14px; font-weight: 600; }
   nav.tabs button[aria-selected=true] { color: var(--fg); border-bottom-color: var(--fg); }
-  .panel { padding-top: 16px; }
-  .panel .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
-  .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 6px 10px; margin-top: 10px; }
-  .chips .try { grid-column: 1 / -1; }
-  .chips .try { color: var(--muted); font-size: 13px; padding: 4px 2px; }
-  .chips button { background: var(--tag); color: var(--accent); border: 0; border-radius: 8px; padding: 6px 12px; font-size: 13px; text-align: left; line-height: 1.35; cursor: pointer; }
-  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 18px 0 0; padding: 10px 12px; background: var(--panel); border-radius: 8px; font-size: 14px; color: var(--muted); }
-  .bar .acts { display: flex; gap: 8px; flex-wrap: wrap; }
-  .bar button { padding: 6px 12px; font-size: 14px; }
-  .status { margin-top: 16px; color: var(--muted); font-size: 14px; }
-  ol { list-style: none; padding: 0; margin: 8px 0 0; }
-  li { display: flex; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+  .scroll { flex: 1; overflow-y: auto; }
+  .col { max-width: 860px; margin: 0 auto; padding: 0 16px; }
+  .intro { padding: 22px 0 28px; }
+  .intro .sub { color: var(--muted); margin: 0 0 6px; font-size: 15px; }
+  .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 6px 10px; margin-top: 12px; }
+  .chips .try { grid-column: 1 / -1; color: var(--muted); font-size: 13px; padding: 4px 2px; }
+  .chips button { background: var(--tag); color: var(--accent); border: 0; border-radius: 8px; padding: 6px 12px; font-size: 13px; text-align: left; line-height: 1.35; }
+  .intro footer { margin-top: 28px; color: var(--muted); font-size: 13px; }
+  .intro footer a { color: var(--accent); }
+
+  .turn { padding: 22px 0 10px; border-bottom: 1px solid var(--line); }
+  .turn-head { display: flex; gap: 8px; align-items: flex-start; }
+  .asked { flex: 1; font-weight: 600; font-size: 17px; }
+  .asked .sec { display: inline-block; font-size: 11px; font-weight: 600; color: var(--accent); background: var(--tag); border-radius: 4px; padding: 0 6px; margin-left: 8px; vertical-align: 2px; }
+  .turn-head .del { background: none; border: 0; color: var(--muted); padding: 0 6px; font-size: 18px; }
+  .interpreted { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .notice { color: var(--warn); font-size: 13px; margin-top: 6px; }
+  .status { color: var(--muted); font-size: 14px; margin-top: 10px; }
+  .answer { margin-top: 12px; padding: 12px 14px; background: var(--panel); border-radius: 10px; font-size: 15px; }
+  .answer.pending { color: var(--muted); }
+  ol { list-style: none; padding: 0; margin: 6px 0 0; }
+  li { display: flex; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
   li:first-child { border-top: 0; }
   li img { flex: none; width: 96px; height: 72px; object-fit: cover; border-radius: 6px; background: var(--panel); }
   li .body { min-width: 0; }
@@ -42,15 +77,34 @@
   .meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
   .summary { font-size: 15px; margin-top: 4px; overflow-wrap: anywhere; }
   .why { font-size: 13px; color: var(--muted); margin-top: 4px; }
-  .strong { display: inline-block; font-size: 11px; font-weight: 600; color: var(--accent); background: var(--tag); border-radius: 4px; padding: 0 6px; margin-right: 6px; vertical-align: 1px; }
-  dialog { width: min(560px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: 12px; padding: 0; color: var(--fg); background: var(--bg); }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; justify-content: space-between; margin: 10px 0 4px; padding: 8px 12px; background: var(--panel); border-radius: 8px; font-size: 13px; color: var(--muted); }
+  .bar .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .bar button { padding: 5px 10px; font-size: 13px; }
+
+  .composer-wrap { border-top: 1px solid var(--line); padding: 10px 0 calc(12px + env(safe-area-inset-bottom)); flex: none; }
+  .composer-meta { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .composer-meta .follow { font-weight: 600; color: var(--accent); }
+  .composer-meta select { font-size: 13px; padding: 2px 6px; }
+  .composer-meta #mode { margin-left: auto; }
+  form.composer { display: flex; gap: 8px; align-items: flex-end; }
+  form.composer textarea { flex: 1; min-width: 0; resize: none; padding: 10px 12px; line-height: 1.4; max-height: 200px; }
+
+  dialog { width: min(640px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: 12px; padding: 0; color: var(--fg); background: var(--bg); }
   dialog::backdrop { background: rgba(0,0,0,.45); }
   dialog .in { padding: 20px; }
   dialog h2 { margin: 0 0 4px; font-size: 19px; }
   dialog p { margin: 6px 0; font-size: 14px; color: var(--muted); }
-  dialog form { display: grid; gap: 12px; margin-top: 12px; }
-  dialog .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  dialog label { font-size: 14px; display: flex; gap: 6px; align-items: center; }
+  dialog .x { position: absolute; right: 8px; top: 6px; }
+  .tablewrap { overflow-x: auto; margin-top: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; white-space: normal; }
+  td small { display: block; color: var(--muted); }
+  tfoot td { font-weight: 600; border-bottom: 0; }
+  #nl-form { display: grid; gap: 12px; margin-top: 12px; }
+  #nl-form .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  #nl-form label { font-size: 14px; display: flex; gap: 6px; align-items: center; }
+  #nl-email { flex: 1; min-width: 0; padding: 10px 12px; }
   .demo { font-size: 12px; font-weight: 600; color: #8a5a00; background: #fff4d6; border-radius: 4px; padding: 1px 6px; }
   @media (prefers-color-scheme: dark) { .demo { color: #ffd27a; background: #3a2c08; } }
   .mail { border: 1px solid var(--line); border-radius: 8px; margin-top: 12px; font-size: 14px; max-height: 300px; overflow: auto; }
@@ -59,19 +113,87 @@
   .mail .it:first-of-type { border-top: 0; }
   .mail .it b { display: block; color: var(--fg); }
   .done { color: var(--ok); font-weight: 600; font-size: 14px; }
-  footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
-  footer a, .bar a { color: var(--accent); }
-  [hidden] { display: none !important; }
+
+  @media (max-width: 760px) {
+    aside { position: fixed; inset: 0 auto 0 0; width: min(86vw, 320px); z-index: 10; box-shadow: 0 0 24px rgba(0,0,0,.25); }
+    header.top h1 { font-size: 17px; }
+    header.top .how { display: none; }
+    .composer-meta #where { display: none; }
+    .composer-meta #model { max-width: 150px; }
+    li img { width: 72px; height: 54px; }
+  }
 </style>
 </head>
-<body>
-<div class="wrap">
-<h1>Search the Times</h1>
-<p class="sub">Ask in your own words across New York Times articles since 2016, Times and Athletic podcasts, Cooking recipes and Wirecutter reviews. Newer pieces come first. Each tab keeps the search inside its section.</p>
-<nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
-<div id="panels"></div>
-<footer>An independent demo built on public New York Times feeds and the NYT Archive API; results link to the original pages. Each section's results are also a feed: new matches as they are published. <a href="https://neuralweb.dev/design/qdrss/" target="_blank" rel="noopener">How it works</a></footer>
+<body class="side-closed">
+<div class="shell">
+  <aside id="side" aria-label="Conversations">
+    <div class="side-head">
+      <h2>Conversations</h2>
+      <span><button type="button" class="icon" id="side-new" title="New search" aria-label="New search">+</button><button type="button" class="icon" id="side-close" title="Hide conversations" aria-label="Hide conversations">&times;</button></span>
+    </div>
+    <input id="conv-search" type="search" placeholder="Search conversations" aria-label="Search conversations">
+    <div id="convs" class="convs" role="list"></div>
+    <div class="side-foot"><span id="stored"></span><button type="button" class="link" id="clear-all">Clear all</button></div>
+  </aside>
+
+  <main>
+    <header class="top">
+      <button type="button" class="icon" id="side-toggle" aria-expanded="false" title="Show conversations" aria-label="Show conversations">&#9776;</button>
+      <button type="button" class="icon" id="new-top" title="New search" aria-label="New search"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+      <h1 id="title">Search the Times</h1>
+      <span class="spacer"></span>
+      <a class="how" href="https://neuralweb.dev/design/qdrss/" target="_blank" rel="noopener">How it works</a>
+      <button type="button" id="cost-open" aria-haspopup="dialog" hidden>Cost</button>
+    </header>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+
+    <div class="scroll" id="scroll">
+      <div class="col">
+        <div id="thread" aria-live="polite"></div>
+        <section class="intro" id="intro">
+          <p class="sub">Ask in your own words across New York Times articles since 2016, Times and Athletic podcasts, Cooking recipes and Wirecutter reviews. Newer pieces come first. Each tab keeps the search inside its section, and you can ask follow-ups to narrow it.</p>
+          <div class="chips" id="chips"></div>
+          <footer>An independent demo built on public New York Times feeds and the NYT Archive API; results link to the original pages. Each section's results are also a feed: new matches as they are published. Conversations are kept in this browser only.</footer>
+        </section>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="col">
+        <div class="composer-meta">
+          <span id="follow" class="follow" hidden>Follow-up</span>
+          <span id="where"></span>
+          <select id="mode" aria-label="Answer mode" title="Answer mode">
+            <option value="summarize" selected>Summarize</option>
+            <option value="list">List</option>
+          </select>
+          <select id="model" aria-label="Ranking model" title="Model that judges each result"></select>
+        </div>
+        <form class="composer" id="form">
+          <textarea id="query" rows="1" required aria-label="Question"></textarea>
+          <button type="submit" id="ask">Ask</button>
+        </form>
+      </div>
+    </div>
+  </main>
 </div>
+
+<dialog id="cost" aria-labelledby="cost-title">
+  <div class="in">
+    <button type="button" class="icon x" id="cost-close" aria-label="Close">&times;</button>
+    <h2 id="cost-title">What this question cost</h2>
+    <p id="cost-q"></p>
+    <p id="cost-sum"></p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Model and steps</th><th>Calls</th><th>Prompt</th><th>Completion</th><th>Reasoning</th><th>Model time</th><th>Cost (USD)</th></tr></thead>
+        <tbody id="cost-rows"></tbody>
+        <tfoot id="cost-foot"></tfoot>
+      </table>
+    </div>
+    <p id="cost-note"></p>
+  </div>
+</dialog>
 
 <dialog id="newsletter" aria-labelledby="nl-title">
   <div class="in">
@@ -91,121 +213,384 @@
   </div>
 </dialog>
 
-<script>
+<script type="module">
 const $ = id => document.getElementById(id);
-const state = { tab: 'all', q: '', results: {}, verticals: [], seq: {} };
 const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids.filter(k => k != null)); return n; };
 const day = iso => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); };
 const httpUrl = u => { try { const x = new URL(u); return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : null; } catch { return null; } };
+const store = (k, v) => { try { v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch {} };
+const recall = k => { try { return localStorage.getItem(k); } catch { return null; } };
 
-function readUrl() {
-  const p = new URLSearchParams(location.search);
-  state.q = (p.get('q') || '').trim();
-  const tab = p.get('tab');
-  if (tab && state.verticals.some(v => v.id === tab)) state.tab = tab;
+// ------------------------------------------------------------ saved conversations
+// The browser owns the conversation: the search API is stateless, and each turn is stored whole, so
+// reopening one shows what was shown. Adapted from the NLWeb samples' threadstore.js.
+class Threads {
+  constructor(db) { this.db = db; }
+  static async open() {
+    if (!globalThis.indexedDB) return new Threads(null);
+    const req = indexedDB.open('nyt-search', 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore('threads', { keyPath: 'id' });
+      req.result.createObjectStore('turns', { keyPath: ['threadId', 'seq'] });
+    };
+    try { return new Threads(await idb(req)); } catch { return new Threads(null); }  // private windows: works, forgets
+  }
+  get available() { return this.db !== null; }
+  os(name, mode) { return this.db.transaction(name, mode).objectStore(name); }
+  start() {
+    const now = Date.now();
+    return { id: `t_${now.toString(36)}${Math.random().toString(36).slice(2, 8)}`, title: '', createdAt: now, updatedAt: now, turnCount: 0, search: '' };
+  }
+  async append(thread, turn) {
+    const first = !thread.turnCount;
+    thread.turnCount += 1; thread.updatedAt = Date.now();
+    if (!thread.title) thread.title = turn.question.replace(/\s+/g, ' ').trim().slice(0, 90);
+    // The history lists each question once: a conversation that starts with a question already in it
+    // (same words, same section) replaces the older one, which drops out of the list.
+    if (first) thread.key = `${turn.vertical}|${turn.question.replace(/\s+/g, ' ').trim().toLowerCase()}`;
+    if (first && this.db) for (const old of await this.threads()) if (old.id !== thread.id && old.key === thread.key) await this.remove(old.id);
+    thread.search = `${thread.search} ${turn.question} ${turn.interpretedAs || ''} ${(turn.results || []).map(r => r.title).join(' ')}`.toLowerCase().slice(0, 4000);
+    if (!this.db) return 0;
+    const range = IDBKeyRange.bound([thread.id, 0], [thread.id, Infinity]);
+    const keys = await idb(this.os('turns', 'readonly').getAllKeys(range));
+    const seq = keys.reduce((hi, k) => Math.max(hi, k[1]), 0) + 1;
+    await idb(this.os('turns', 'readwrite').put({ threadId: thread.id, seq, turn }));
+    await idb(this.os('threads', 'readwrite').put(thread));
+    return seq;
+  }
+  async threads() { return this.db ? (await idb(this.os('threads', 'readonly').getAll())).filter(t => t.turnCount).sort((a, b) => b.updatedAt - a.updatedAt) : []; }
+  async turns(id) {
+    if (!this.db) return [];
+    const rows = await idb(this.os('turns', 'readonly').getAll(IDBKeyRange.bound([id, 0], [id, Infinity])));
+    return rows.sort((a, b) => a.seq - b.seq).map(r => ({ ...r.turn, seq: r.seq }));
+  }
+  async removeTurn(thread, seq) {
+    if (!this.db) return thread;
+    await idb(this.os('turns', 'readwrite').delete([thread.id, seq]));
+    const left = await this.turns(thread.id);
+    if (!left.length) { await this.remove(thread.id); return null; }
+    thread.turnCount = left.length; thread.title = left[0].question.slice(0, 90);
+    thread.key = `${left[0].vertical}|${left[0].question.replace(/\s+/g, ' ').trim().toLowerCase()}`;
+    await idb(this.os('threads', 'readwrite').put(thread));
+    return thread;
+  }
+  async remove(id) {
+    if (!this.db) return;
+    await idb(this.os('threads', 'readwrite').delete(id));
+    await idb(this.os('turns', 'readwrite').delete(IDBKeyRange.bound([id, 0], [id, Infinity])));
+  }
+  async clear() { if (this.db) { await idb(this.os('turns', 'readwrite').clear()); await idb(this.os('threads', 'readwrite').clear()); } }
 }
-function writeUrl() {
+function idb(req) { return new Promise((ok, fail) => { req.onsuccess = () => ok(req.result); req.onerror = () => fail(req.error); }); }
+
+// ------------------------------------------------------------ state
+let verticals = [], tab = 'all', threads = null, thread = null, turns = [], busy = false;
+const vertical = id => verticals.find(v => v.id === id) || verticals[0];
+
+function selectTab(id) {
+  tab = vertical(id).id;
+  for (const v of verticals) $(`tab-${v.id}`).setAttribute('aria-selected', v.id === tab);
+  const v = vertical(tab);
+  $('chips').replaceChildren(el('span', { className: 'try', textContent: `Try in ${v.label}:` }), ...v.examples.map(x => {
+    const c = el('button', { type: 'button', textContent: x });
+    c.addEventListener('click', () => { $('query').value = x; $('form').requestSubmit(); });
+    return c;
+  }));
+  composerMode();
+}
+
+function composerMode() {
+  const v = vertical(tab), follow = turns.length > 0;
+  $('follow').hidden = !follow;
+  $('where').textContent = follow ? `in ${v.label}, read with the questions above` : (v.id === 'all' ? 'Every section, podcasts included' : `Only ${v.label}`);
+  $('query').placeholder = follow ? 'Ask a follow-up to narrow or change the search…' : (v.id === 'all' ? 'Ask about anything in the Times…' : `Ask ${v.label}…`);
+}
+
+function writeUrl(q) {
   const p = new URLSearchParams();
-  if (state.q) p.set('q', state.q);
-  if (state.tab !== 'all') p.set('tab', state.tab);
+  if (q) p.set('q', q);
+  if (tab !== 'all') p.set('tab', tab);
   history.replaceState(null, '', p.toString() ? `?${p}` : location.pathname);
 }
 
-function buildTabs() {
-  const tabs = $('tabs'), panels = $('panels');
-  for (const v of state.verticals) {
-    const b = el('button', { type: 'button', textContent: v.label, id: `tab-${v.id}` });
-    b.setAttribute('role', 'tab'); b.setAttribute('aria-controls', `panel-${v.id}`);
-    b.addEventListener('click', () => select(v.id, true));
-    tabs.append(b);
-    const input = el('input', { type: 'text', placeholder: v.id === 'all' ? 'Search everything' : `Search ${v.label}`, required: true });
-    input.setAttribute('aria-label', `Search ${v.label}`);
-    const form = el('form', { className: 'ask' }, input, el('button', { type: 'submit', textContent: 'Search' }));
-    form.addEventListener('submit', e => { e.preventDefault(); run(v.id, input.value.trim()); });
-    const chips = el('div', { className: 'chips' }, el('span', { className: 'try', textContent: `Try in ${v.label}:` }), ...v.examples.map(x => {
-      const c = el('button', { type: 'button', textContent: x });
-      c.addEventListener('click', () => { input.value = x; run(v.id, x); });
-      return c;
-    }));
-    const hint = el('p', { className: 'hint', textContent: v.id === 'all' ? 'Every section, podcasts included. Cooking and Wirecutter have their own tabs.' : `Searches only ${v.label}.` });
-    const panel = el('section', { className: 'panel', id: `panel-${v.id}`, hidden: true }, form, hint, chips,
-      el('div', { className: 'bar', hidden: true }), el('div', { className: 'status' }), el('ol'));
-    panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', `tab-${v.id}`);
-    panels.append(panel);
+// ------------------------------------------------------------ money
+const dollars = c => { c = Number(c || 0); return c === 0 ? '$0' : c < 0.01 ? `$${c.toFixed(4)}` : `$${c.toFixed(3)}`; };
+const conversationCost = () => turns.reduce((s, t) => s + Number(t.usage?.cost || 0), 0);
+function costLine(t) {
+  const n = (t.results || []).length, parts = [`${n} result${n === 1 ? '' : 's'} in ${vertical(t.vertical).label}`];
+  if (t.secs) parts.push(`${t.secs.toFixed(1)}s`);
+  if (t.usage) parts.push(t.usage.cached && !t.usage.calls ? 'cached, no model calls' : `${t.usage.calls} model calls · ${Number(t.usage.total_tokens || 0).toLocaleString()} tokens · ${dollars(t.usage.cost)}`);
+  return parts.join(' · ');
+}
+function topCost() {
+  const last = turns.at(-1);
+  $('cost-open').hidden = !last?.usage;
+  if (last?.usage) $('cost-open').textContent = matchMedia('(max-width: 760px)').matches
+    ? `Cost ${dollars(last.usage.cost)}` : `Cost: last ${dollars(last.usage.cost)} · conversation ${dollars(conversationCost())}`;
+}
+function showCost(t) {
+  const u = t.usage; if (!u) return;
+  $('cost-q').textContent = `“${t.question}”${t.interpretedAs && t.interpretedAs !== t.question ? ` searched as “${t.interpretedAs}”` : ''} in ${vertical(t.vertical).label}, ranked by ${modelLabel(t.model)}${t.mode === 'list' ? ', list only' : ''}${t.secs ? `, ${t.secs.toFixed(1)}s end to end` : ''}.`;
+  $('cost-sum').textContent = u.cached ? 'The results were cached from an earlier identical search, so only the calls below were made for this question.' : '';
+  const rows = $('cost-rows'); rows.replaceChildren();
+  for (const m of u.models || []) {
+    const steps = Object.entries(m.phases || {}).map(([k, n]) => `${k} ${n}`).join(' · ');
+    rows.append(el('tr', {}, el('td', {}, el('div', { textContent: m.model }), el('small', { textContent: steps })),
+      ...[m.calls, m.prompt_tokens, m.completion_tokens, m.reasoning_tokens].map(x => el('td', { textContent: Number(x || 0).toLocaleString() })),
+      el('td', { textContent: m.latency_seconds ? `${Number(m.latency_seconds).toFixed(1)}s` : '' }),
+      el('td', { textContent: `$${Number(m.cost || 0).toFixed(6)}${m.unpriced_calls ? '*' : ''}` })));
   }
+  if (!(u.models || []).length) rows.append(el('tr', {}, el('td', { colSpan: 7, textContent: 'No model calls.' })));
+  $('cost-foot').replaceChildren(el('tr', {}, el('td', { textContent: 'Total' }),
+    ...[u.calls, u.prompt_tokens, u.completion_tokens, u.reasoning_tokens].map(x => el('td', { textContent: Number(x || 0).toLocaleString() })),
+    el('td'), el('td', { textContent: `$${Number(u.cost || 0).toFixed(6)}` })));
+  $('cost-note').textContent = [
+    u.unpriced_calls ? `* ${u.unpriced_calls} call${u.unpriced_calls === 1 ? '' : 's'} came back without a price.` : '',
+    'Model time adds up calls that ran in parallel, so it can exceed the time you waited.',
+    `This conversation so far: ${dollars(conversationCost())}.`,
+  ].filter(Boolean).join(' ');
+  $('cost').showModal();
+}
+$('cost-open').addEventListener('click', () => turns.at(-1) && showCost(turns.at(-1)));
+$('cost-close').addEventListener('click', () => $('cost').close());
+$('cost').addEventListener('click', e => { if (e.target === $('cost')) $('cost').close(); });
+
+// ------------------------------------------------------------ one turn on screen
+function drawTurn(t) {
+  const v = vertical(t.vertical);
+  const del = el('button', { type: 'button', className: 'del', textContent: '×', title: 'Remove this question' });
+  const node = el('section', { className: 'turn' },
+    el('div', { className: 'turn-head' }, el('div', { className: 'asked', textContent: t.question }, el('span', { className: 'sec', textContent: v.label })), del));
+  const status = el('div', { className: 'status' });
+  const list = el('ol');
+  const bar = el('div', { className: 'bar', hidden: true });
+  node.append(status, list, bar);
+  $('thread').append(node);
+  del.addEventListener('click', () => forget(t, node));
+  const view = {
+    node,
+    status: text => { status.textContent = text; status.hidden = !text; },
+    interpreted: q => { if (q && q !== t.question) node.querySelector('.turn-head').after(el('div', { className: 'interpreted', textContent: `Searched for: ${q}` })); },
+    notice: text => status.before(el('div', { className: 'notice', textContent: text })),
+    answer: (text, pending) => {
+      let box = node.querySelector('.answer');
+      if (!box) { box = el('div', { className: 'answer' }); list.before(box); }
+      box.textContent = text; box.classList.toggle('pending', !!pending);
+    },
+    noAnswer: () => node.querySelector('.answer')?.remove(),
+    results: rows => { for (const r of rows) { const li = card(r); if (li) list.append(li); } },
+    bar: () => {
+      const acts = el('div', { className: 'acts' });
+      if (t.usage) { const c = el('button', { type: 'button', className: 'ghost', textContent: 'Cost details' }); c.addEventListener('click', () => showCost(t)); acts.append(c); }
+      if ((t.results || []).length) {
+        const email = el('button', { type: 'button', textContent: 'Create an email newsletter' });
+        email.addEventListener('click', () => openNewsletter(v, t.interpretedAs || t.question, t.results));
+        acts.append(email);
+      }
+      if (t.feed) {
+        const copy = el('button', { type: 'button', className: 'ghost', textContent: 'Copy RSS feed' });
+        copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(t.feed); copy.textContent = 'Copied'; } catch { prompt('RSS feed URL', t.feed); } });
+        acts.append(copy);
+      }
+      bar.replaceChildren(el('span', { textContent: costLine(t) }), acts);
+      bar.hidden = false;
+    },
+  };
+  return view;
 }
 
-function select(id, runIt) {
-  state.tab = id;
-  for (const v of state.verticals) {
-    const on = v.id === id;
-    $(`tab-${v.id}`).setAttribute('aria-selected', on);
-    $(`panel-${v.id}`).hidden = !on;
-  }
-  const panel = $(`panel-${id}`), input = panel.querySelector('input');
-  if (state.q && !input.value) input.value = state.q;
-  writeUrl();
-  if (runIt && input.value.trim() && state.results[id]?.q !== input.value.trim()) run(id, input.value.trim());
+function card(r) {
+  const href = httpUrl(r.url); if (!href) return null;
+  const img = httpUrl(r.image) ? el('img', { src: r.image, alt: '', loading: 'lazy' }) : null;
+  const meta = [r.source, day(r.date)].filter(Boolean).join(' · ');
+  return el('li', {}, img, el('div', { className: 'body' },
+    el('a', { href, target: '_blank', rel: 'noopener', textContent: r.title }),
+    meta ? el('div', { className: 'meta', textContent: meta }) : null,
+    r.summary ? el('div', { className: 'summary', textContent: r.summary.length > 260 ? r.summary.slice(0, 257) + '…' : r.summary }) : null,
+    r.why ? el('div', { className: 'why', textContent: r.why }) : null));
 }
 
-async function run(id, q) {
-  if (!q) return;
-  state.q = q; writeUrl();
-  const panel = $(`panel-${id}`), v = state.verticals.find(x => x.id === id);
-  panel.querySelector('input').value = q;
-  const status = panel.querySelector('.status'), list = panel.querySelector('ol'), bar = panel.querySelector('.bar');
-  // A newer search in this tab replaces this one: its answer, whenever it comes, is dropped.
-  const seq = state.seq[id] = (state.seq[id] || 0) + 1;
-  list.replaceChildren(); bar.hidden = true;
-  status.textContent = v.feed ? `Searching ${v.label}: reading candidates and judging each one…` : `Asking ${v.label}…`;
+function replay(t) {
+  const view = drawTurn(t);
+  view.interpreted(t.interpretedAs);
+  for (const n of t.notices || []) view.notice(n);
+  if (t.summary) view.answer(t.summary);
+  else if (t.summaryError) view.answer(`No summary: ${t.summaryError}.`);
+  view.results(t.results || []);
+  view.status(t.error ? `Search failed: ${t.error}` : (t.results || []).length ? '' : `Nothing in ${vertical(t.vertical).label} matches. Try other words, or the All tab.`);
+  if (!t.error) view.bar();
+}
+
+// ------------------------------------------------------------ asking
+async function ask(question) {
+  if (busy || !question) return;
+  busy = true; $('ask').disabled = true;
+  $('intro').hidden = true;
+  const v = vertical(tab);
+  const t = { question, vertical: v.id, askedAt: Date.now(), interpretedAs: null, results: [], feed: null, summary: null, summaryError: null, notices: [], usage: null, secs: 0 };
+  // Earlier turns as the server understood them, so the chain of context does not rest on fragments
+  // like "only the opinion pieces"; the last turn's titles let a follow-up point at one of them.
+  const previous = turns.slice(-5).map(x => x.interpretedAs || x.question);
+  const shown = (turns.at(-1)?.results || []).slice(0, 10).map(r => r.title);
+  turns.push(t);
+  composerMode();
+  const view = drawTurn(t);
+  view.node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  view.status(v.feed ? `Searching ${v.label}: reading candidates and judging each one…` : `Asking ${v.label}…`);
   const started = performance.now();
+  const summarize = $('mode').value === 'summarize';
+  t.mode = $('mode').value; t.model = $('model').value;
   try {
-    const r = await fetch(`/api/search?${new URLSearchParams({ q, vertical: id })}`);
-    const body = await r.json();
-    if (!r.ok) throw new Error(body.error || `HTTP ${r.status}`);
-    if (seq !== state.seq[id]) return;
-    state.results[id] = { q, ...body };
-    render(panel, v, q, body, (performance.now() - started) / 1000);
+    const r = await fetch('/api/search', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ q: question, vertical: v.id, previous_queries: previous, previous_results: shown, summarize, ranking_model: t.model }) });
+    if (!r.ok) { let m = `HTTP ${r.status}`; try { m = (await r.json()).error || m; } catch {} throw new Error(m); }
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    const handle = e => {
+      if (e.type === 'query') { t.interpretedAs = e.value; view.interpreted(e.value); writeUrl(e.value); }
+      else if (e.type === 'results') {
+        t.results = e.results; t.feed = e.feed; t.notices = e.notices || [];
+        t.notices.forEach(view.notice);
+        view.results(t.results);
+        view.status(t.results.length ? '' : `Nothing in ${v.label} matches. Try other words, or the All tab.`);
+        if (summarize && t.results.length) view.answer('Writing a summary…', true);
+      }
+      else if (e.type === 'summary') { t.summary = e.value; view.answer(e.value); }
+      else if (e.type === 'summary_error') { t.summaryError = e.message; view.answer(`No summary: ${e.message}.`); }
+      else if (e.type === 'usage') { const { type, ...u } = e; t.usage = u; }
+    };
+    for (;;) {
+      const { value, done } = await reader.read();
+      buf += dec.decode(value || new Uint8Array(), { stream: !done });
+      const lines = buf.split('\n'); buf = done ? '' : lines.pop();
+      for (const line of lines) if (line.trim()) handle(JSON.parse(line));
+      if (done) break;
+    }
+    if (summarize && t.results.length && !t.summary && !t.summaryError) { t.summaryError = 'the answer ended before a summary came'; view.answer(`No summary: ${t.summaryError}.`); }
+    t.secs = (performance.now() - started) / 1000;
+    view.bar();
+    topCost();
   } catch (err) {
-    if (seq === state.seq[id]) status.textContent = `Search failed: ${err.message}. Try again in a moment.`;
+    t.error = err.message;
+    view.noAnswer();
+    view.status(`Search failed: ${err.message}. Try again in a moment.`);
+  } finally {
+    busy = false; $('ask').disabled = false;
   }
+  await remember(t);
 }
 
-function render(panel, v, q, body, secs) {
-  const status = panel.querySelector('.status'), list = panel.querySelector('ol'), bar = panel.querySelector('.bar');
-  const rows = body.results;
-  status.textContent = rows.length ? '' : `Nothing in ${v.label} matches “${q}”. Try other words, or the All tab.`;
-  for (const r of rows) {
-    const href = httpUrl(r.url); if (!href) continue;
-    const img = httpUrl(r.image) ? el('img', { src: r.image, alt: '', loading: 'lazy' }) : null;
-    const meta = [r.source, day(r.date)].filter(Boolean).join(' · ');
-    list.append(el('li', {}, img, el('div', { className: 'body' },
-      el('a', { href, target: '_blank', rel: 'noopener', textContent: r.title }),
-      meta ? el('div', { className: 'meta', textContent: meta }) : null,
-      r.summary ? el('div', { className: 'summary', textContent: r.summary.length > 260 ? r.summary.slice(0, 257) + '…' : r.summary }) : null,
-      (r.why || r.strong) ? el('div', { className: 'why' }, r.strong ? el('span', { className: 'strong', textContent: 'Strong match' }) : null, r.why || '') : null)));
-  }
-  if (!rows.length) return;
-  const email = el('button', { type: 'button', textContent: 'Create an email newsletter' });
-  email.addEventListener('click', () => openNewsletter(v, q, rows, body.feed));
-  const acts = el('div', { className: 'acts' }, email);
-  if (body.feed) {
-    const copy = el('button', { type: 'button', className: 'ghost', textContent: 'Copy RSS feed' });
-    copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(body.feed); copy.textContent = 'Copied'; } catch { prompt('RSS feed URL', body.feed); } });
-    acts.append(copy);
-  }
-  bar.replaceChildren(el('span', { textContent: `${rows.length} result${rows.length === 1 ? '' : 's'} in ${v.label} for “${q}”${secs >= 0.5 ? ` · ${secs.toFixed(1)}s` : ''}` }), acts);
-  bar.hidden = false;
+async function remember(t) {
+  if (!threads?.available) return;
+  if (!thread) thread = threads.start();
+  t.seq = await threads.append(thread, t);
+  $('title').textContent = thread.title;
+  await listConversations();
 }
 
-function openNewsletter(v, q, rows, feed) {
-  const d = $('newsletter');
+async function forget(t, node) {
+  node.remove();
+  turns = turns.filter(x => x !== t);
+  if (thread && t.seq) {
+    thread = await threads.removeTurn(thread, t.seq);
+    if (!thread) newSearch(); else $('title').textContent = thread.title;
+    await listConversations();
+  } else if (!turns.length) newSearch();
+  composerMode(); topCost();
+}
+
+function newSearch() {
+  thread = null; turns = [];
+  $('thread').replaceChildren();
+  $('intro').hidden = false;
+  $('title').textContent = 'Search the Times';
+  composerMode(); topCost(); markActive(null); writeUrl('');
+  $('query').focus();
+}
+
+$('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const q = $('query').value.trim();
+  if (!q || busy) return;
+  $('query').value = ''; grow();
+  ask(q);
+});
+$('query').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('form').requestSubmit(); } });
+const grow = () => { const b = $('query'); b.style.height = 'auto'; b.style.height = `${Math.min(b.scrollHeight, 200)}px`; };
+$('query').addEventListener('input', grow);
+$('mode').value = recall('nyt-search:mode') === 'list' ? 'list' : 'summarize';
+$('mode').addEventListener('change', () => store('nyt-search:mode', $('mode').value));
+let models = [];
+const modelLabel = id => models.find(m => m.id === (id || ''))?.label || id || 'Auto';
+$('model').addEventListener('change', () => store('nyt-search:model', $('model').value));
+
+// ------------------------------------------------------------ the conversation list
+const narrow = matchMedia('(max-width: 760px)');
+function setSide(open) {
+  document.body.classList.toggle('side-closed', !open);
+  const b = $('side-toggle'); b.setAttribute('aria-expanded', String(open));
+  b.title = open ? 'Hide conversations' : 'Show conversations'; b.setAttribute('aria-label', b.title);
+  if (!narrow.matches) store('nyt-search:side', open ? 'open' : 'closed');
+}
+$('side-toggle').addEventListener('click', () => setSide(document.body.classList.contains('side-closed')));
+$('side-close').addEventListener('click', () => setSide(false));
+for (const id of ['side-new', 'new-top']) $(id).addEventListener('click', () => { newSearch(); if (narrow.matches) setSide(false); });
+$('conv-search').addEventListener('input', listConversations);
+$('clear-all').addEventListener('click', async () => {
+  if (!threads?.available || !confirm('Delete every saved conversation? This cannot be undone.')) return;
+  await threads.clear(); newSearch(); await listConversations();
+});
+
+function when(ms) {
+  const days = Math.floor((Date.now() - ms) / 86400000);
+  if (days === 0) return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (days === 1) return 'Yesterday';
+  return days < 7 ? `${days} days ago` : new Date(ms).toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+function markActive(id) { for (const n of document.querySelectorAll('.conv')) n.classList.toggle('active', n.dataset.id === id); }
+
+async function listConversations() {
+  const list = $('convs');
+  if (!threads?.available) { list.replaceChildren(el('p', { className: 'empty', textContent: 'This browser is not keeping conversations, so they will not survive a reload.' })); return; }
+  const needle = $('conv-search').value.trim().toLowerCase();
+  const all = await threads.threads();
+  const shown = needle ? all.filter(x => x.title.toLowerCase().includes(needle) || x.search.includes(needle)) : all;
+  list.replaceChildren(...(shown.length ? [] : [el('p', { className: 'empty', textContent: needle ? 'No conversations match.' : 'No conversations yet.' })]));
+  for (const item of shown) {
+    const open = el('button', { type: 'button', className: 'open', textContent: item.title || 'Untitled' });
+    open.addEventListener('click', () => { openThread(item); if (narrow.matches) setSide(false); });
+    const del = el('button', { type: 'button', className: 'del', textContent: '×', title: 'Delete conversation' });
+    del.addEventListener('click', async () => { await threads.remove(item.id); if (thread?.id === item.id) newSearch(); await listConversations(); });
+    const row = el('div', { className: 'conv' }, open, el('div', { className: 'when', textContent: `${item.turnCount} question${item.turnCount === 1 ? '' : 's'} · ${when(item.updatedAt)}` }), del);
+    row.dataset.id = item.id; row.setAttribute('role', 'listitem');
+    list.append(row);
+  }
+  markActive(thread?.id ?? null);
+}
+
+// Reopening shows what was shown, from the stored turns; nothing is searched again.
+async function openThread(item) {
+  if (busy) return;
+  thread = item;
+  turns = await threads.turns(item.id);
+  $('thread').replaceChildren();
+  $('intro').hidden = true;
+  $('title').textContent = item.title;
+  turns.forEach(replay);
+  const last = turns.at(-1);
+  if (last) { selectTab(last.vertical); writeUrl(last.interpretedAs || last.question); }
+  composerMode(); topCost(); markActive(item.id);
+  $('query').focus();
+}
+
+// ------------------------------------------------------------ newsletter (demo)
+function openNewsletter(v, q, rows) {
   $('nl-what').textContent = `New ${v.id === 'all' ? '' : v.label + ' '}pieces about “${q}”, found by the same search this page runs.`;
   $('nl-done').hidden = true; $('nl-create').disabled = false;
   const items = rows.slice(0, 5).map(r => el('div', { className: 'it' }, el('b', { textContent: r.title }),
     el('span', { textContent: [r.source, day(r.date)].filter(Boolean).join(' · ') })));
   $('nl-preview').replaceChildren(el('div', { className: 'hd', textContent: `Preview · Subject: Your Times briefing on “${q}”` }), ...items);
-  d.showModal();
+  $('newsletter').showModal();
   $('nl-email').focus();
 }
 $('nl-close').addEventListener('click', () => $('newsletter').close());
@@ -218,18 +603,40 @@ $('nl-form').addEventListener('submit', e => {
   $('nl-done').hidden = false; $('nl-create').disabled = true;
 });
 
+// The keyboard shrinks the visual viewport on phones: size the app to what is visible.
+if (window.visualViewport) {
+  const fit = () => document.documentElement.style.setProperty('--app-height', `${Math.round(visualViewport.height)}px`);
+  visualViewport.addEventListener('resize', fit); fit();
+}
 
+// ------------------------------------------------------------ start
 (async () => {
+  setSide(!narrow.matches && recall('nyt-search:side') === 'open');
   try {
-    state.verticals = await (await fetch('/api/verticals')).json();
+    verticals = await (await fetch('/api/verticals')).json();
   } catch {
-    $('panels').textContent = 'Could not load the sections. Reload the page to try again.';
+    $('intro').textContent = 'Could not load the sections. Reload the page to try again.';
     return;
   }
-  buildTabs(); readUrl();
-  select(state.tab, false);
-  const input = $(`panel-${state.tab}`).querySelector('input');
-  if (state.q) run(state.tab, state.q); else input.focus();
+  for (const v of verticals) {
+    const b = el('button', { type: 'button', textContent: v.label, id: `tab-${v.id}` });
+    b.setAttribute('role', 'tab');
+    // A tab sets the section the next question searches; the conversation so far stays.
+    b.addEventListener('click', () => { selectTab(v.id); writeUrl(turns.length ? (turns.at(-1).interpretedAs || turns.at(-1).question) : ''); $('query').focus(); });
+    $('tabs').append(b);
+  }
+  try {
+    models = (await (await fetch('/api/models')).json()).models;
+  } catch { models = [{ id: '', label: 'Auto' }]; }
+  for (const m of models) $('model').append(new Option(m.label, m.id));
+  const saved = recall('nyt-search:model');
+  if (models.some(m => m.id === saved)) $('model').value = saved;
+  const p = new URLSearchParams(location.search);
+  selectTab(verticals.some(v => v.id === p.get('tab')) ? p.get('tab') : 'all');
+  threads = await Threads.open();
+  await listConversations();
+  const q = (p.get('q') || '').trim();
+  if (q) ask(q); else $('query').focus();
 })();
 </script>
 </body>

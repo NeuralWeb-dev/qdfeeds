@@ -3,12 +3,15 @@
 Used for the verticals whose content is not RSS (NYT Cooking recipes, Wirecutter
 reviews). An NLWeb answer streams `candidate` events as retrieval finds items and
 `result` events once its ranker has judged them; the ranked results are what we want,
-and the candidates stand in when a backend sends no `result` before it ends.
+and the candidates stand in when a backend sends no `result` before it ends. In
+summarize mode an `nlws` event carries the summary, and a `usage` event what the
+backend's own model calls cost.
 """
 
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass, field
 
 import httpx
 
@@ -37,19 +40,30 @@ def _row(item: dict) -> dict | None:
         "url": url,
         "summary": (item.get("description") or schema.get("description") or "")[:400],
         "why": item.get("explanation") or "",
-        "strong": item.get("relevance") == "strong" or (item.get("score") or 0) >= 80,
         "image": image if isinstance(image, str) and image.startswith("https://") else None,
         "date": schema.get("datePublished") or None,
         "source": schema.get("@type") or "",
     }
 
 
-async def ask(url: str, site: str, query: str, limit: int, client: httpx.AsyncClient | None = None) -> list[dict]:
-    payload = {"query": query, "site": site, "mode": "list", "max_results": limit}
+@dataclass
+class Answer:
+    rows: list[dict]
+    summary: str | None = None
+    usage: dict = field(default_factory=dict)
+    notices: list[str] = field(default_factory=list)
+
+
+async def ask(url: str, site: str, query: str, limit: int, client: httpx.AsyncClient | None = None,
+              mode: str = "list", ranking_model: str = "") -> Answer:
+    payload = {"query": query, "site": site, "mode": mode, "max_results": limit}
+    if ranking_model:
+        payload["ranking_model"] = ranking_model
     own = client is None
     client = client or httpx.AsyncClient(timeout=TIMEOUT)
     results: list[dict] = []
     candidates: list[dict] = []
+    answer = Answer([])
     try:
         async with client.stream("POST", url, json=payload, headers={"accept": "text/event-stream"}) as response:
             if response.status_code != 200:
@@ -65,6 +79,12 @@ async def ask(url: str, site: str, query: str, limit: int, client: httpx.AsyncCl
                 content = event.get("content")
                 if kind in ("result", "candidate") and isinstance(content, list):
                     (results if kind == "result" else candidates).extend(content)
+                elif kind == "nlws" and isinstance(content, dict) and isinstance(content.get("answer"), str):
+                    answer.summary = content["answer"].strip() or None
+                elif kind == "usage" and isinstance(content, dict):
+                    answer.usage = content
+                elif kind == "intermediate_message" and isinstance(content, str) and content.strip():
+                    answer.notices.append(content.strip())
                 elif kind in ("end-nlweb-response", "complete"):
                     break
     except httpx.HTTPError as exc:
@@ -79,4 +99,5 @@ async def ask(url: str, site: str, query: str, limit: int, client: httpx.AsyncCl
         if row and row["url"] not in seen:
             seen.add(row["url"])
             out.append(row)
-    return out[:limit]
+    answer.rows = out[:limit]
+    return answer
