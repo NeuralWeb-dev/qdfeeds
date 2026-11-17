@@ -48,7 +48,7 @@ def parse_snapshot(items_gz: bytes, vectors_npy: bytes) -> tuple[list[Item], np.
     items = [Item(**{**row, "published_at": datetime.fromisoformat(row["published_at"]) if row["published_at"] else None,
                      "ingested_at": datetime.fromisoformat(row["ingested_at"])})
              for row in map(json.loads, lines)]
-    matrix = np.load(io.BytesIO(vectors_npy)).astype(np.float32)
+    matrix = np.load(io.BytesIO(vectors_npy))  # float16 as stored; Index.with_room widens it into its buffer
     if len(items) != len(matrix):
         raise ValueError(f"snapshot has {len(items)} items but {len(matrix)} vectors")
     return items, matrix
@@ -82,6 +82,7 @@ class MemoryRetriever:
         self._checked: dict[str, float] = {}
         self._busy: dict[str, asyncio.Lock] = {name: asyncio.Lock() for name in collections}
         self._floor: dict[str, float] = {}
+        self._ids: dict[str, set[str]] = {}  # every item id in memory, so a catch-up never adds one twice
 
     async def load(self) -> None:
         for name in self.names:
@@ -90,7 +91,9 @@ class MemoryRetriever:
                 items, matrix = parse_snapshot(await _read(self.snapshot, f"{name}.jsonl.gz"),
                                                await _read(self.snapshot, f"{name}.npy"))
                 self._floor[name] = max((i.ingested_at.timestamp() for i in items), default=0.0)
-                self.indexes[name] = Index(items, matrix, self.source_collections)
+                self.indexes[name] = Index.with_room(items, matrix, self.source_collections)
+                self._ids[name] = {i.id for i in items}
+                del items, matrix
                 await self.catch_up(name)
                 self.status[name] = f"{len(self.indexes[name])} items in memory"
                 logger.info("collection %s: %s (%.1fs)", name, self.status[name], time.monotonic() - started)
@@ -103,16 +106,24 @@ class MemoryRetriever:
         async with self._busy[name]:
             self._checked[name] = time.monotonic()
             index = self.indexes[name]
-            known = {i.id for i in index.items}
+            known = self._ids[name]
             fresh = [(i, v) for i, v in await self.cosmos.items_since(name, self._floor[name]) if i.id not in known]
+            fresh = list({i.id: (i, v) for i, v in fresh}.values())
             if fresh:
-                matrix = np.vstack([index.matrix, np.vstack([v for _, v in fresh]).astype(np.float32)])
-                self.indexes[name] = Index(index.items + [i for i, _ in fresh], matrix, self.source_collections)
+                self.indexes[name] = index.extended([i for i, _ in fresh], np.vstack([v for _, v in fresh]))
+                known.update(i.id for i, _ in fresh)
+                self._floor[name] = max(self._floor[name], *(i.ingested_at.timestamp() for i, _ in fresh))
                 logger.info("collection %s: %d items added since the snapshot", name, len(fresh))
             return len(fresh)
 
     async def search(self, vector: np.ndarray, since: datetime | None, collection: str | None, limit: int,
                      sources: frozenset[str] | None = None, collections: frozenset[str] | None = None) -> list[Candidate]:
+        if not collection and collections is not None:
+            # A tab over several collections (All: nytnews and nytimes): each from memory if it is loaded, else
+            # from Cosmos, merged by score. Scores are comparable: the same embedding model and cosine scale.
+            runs = await asyncio.gather(*(self.search(vector, since, name, limit, sources)
+                                          for name in sorted(collections)))
+            return sorted((c for run in runs for c in run), key=lambda c: -c.score)[:limit]
         index = self.indexes.get(collection or "")
         if index is None:
             return await self.cosmos.search(vector, since, collection, limit, sources, collections)
