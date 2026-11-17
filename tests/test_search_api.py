@@ -160,3 +160,13 @@ def test_an_unpriced_call_is_counted_as_such():
     wire = ledger.wire()
     assert wire["unpriced_calls"] == 1 and wire["cost"] == 0.5 and wire["total_tokens"] == 24
     assert wire["models"][0]["phases"] == {"ranking": 2}
+
+
+def test_a_jev_ranked_recipe_shows_its_own_description_or_none():
+    described = {"name": "Lasagna", "url": "https://c.test/1", "description": "Written by the describer",
+                 "schema_object": {"description": "The recipe's own words."}}
+    bare = {"name": "Ragu", "url": "https://c.test/2", "description": "Ragu author X total time PT4H",
+            "schema_object": {"name": "Ragu"}}
+    assert nlweb._row(described, own_description=True)["summary"] == "The recipe's own words."
+    assert nlweb._row(bare, own_description=True)["summary"] == ""
+    assert nlweb._row(described)["summary"] == "Written by the describer"

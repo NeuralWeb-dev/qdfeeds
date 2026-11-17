@@ -16,13 +16,19 @@ from dataclasses import dataclass, field
 import httpx
 
 TIMEOUT = httpx.Timeout(90.0, connect=10.0)
+# Ranking models that only score (decisions.py); results they rank carry nothing written about them.
+DECISION_MODELS = frozenset({"typesafe/jev-1.14"})
 
 
 class NLWebError(RuntimeError):
     pass
 
 
-def _row(item: dict) -> dict | None:
+def _row(item: dict, own_description: bool = False) -> dict | None:
+    """One result for the page. With own_description (a decision model ranked it, so the backend wrote
+    nothing about it) the snippet is the record's own schema.org description, or none: for a record
+    without one the backend sends its flattened fields ("... author X total time PT2H ..."), not a
+    description."""
     schema = item.get("schema_object") or {}
     if isinstance(schema, list):
         schema = schema[0] if schema else {}
@@ -38,7 +44,8 @@ def _row(item: dict) -> dict | None:
     return {
         "title": title,
         "url": url,
-        "summary": (item.get("description") or schema.get("description") or "")[:400],
+        "summary": ((schema.get("description") if own_description else item.get("description") or schema.get("description"))
+                    or "")[:400],
         "why": item.get("explanation") or "",
         "image": image if isinstance(image, str) and image.startswith("https://") else None,
         "date": schema.get("datePublished") or None,
@@ -95,7 +102,7 @@ async def ask(url: str, site: str, query: str, limit: int, client: httpx.AsyncCl
     seen: set[str] = set()
     out = []
     for item in results or [c for c in candidates if c.get("relevance") in ("strong", "relevant")]:
-        row = _row(item)
+        row = _row(item, own_description=ranking_model in DECISION_MODELS)
         if row and row["url"] not in seen:
             seen.add(row["url"])
             out.append(row)

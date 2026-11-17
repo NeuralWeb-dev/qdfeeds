@@ -38,6 +38,13 @@ async def classify(
 ) -> list[Match]:
     if not candidates:
         return []
+    decide = getattr(ranker, "decide", None)
+    if decide is not None:
+        # A decision model (decisions.py) scores the whole page in one call and writes no reasons.
+        try:
+            return await decide(query, candidates)
+        except Exception as exc:  # any failure is a failed ranking: 503, not an empty list
+            raise RankingError(f"{type(exc).__name__}: {exc}") from exc
     batches = [candidates[i : i + batch_size] for i in range(0, len(candidates), batch_size)]
     results = await asyncio.gather(
         *(_classify_batch(query, batch, ranker) for batch in batches), return_exceptions=True

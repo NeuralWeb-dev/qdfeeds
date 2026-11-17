@@ -33,6 +33,7 @@ from . import nlweb, usage
 from .activity import Activity, iso
 from .config import Config, load_config
 from .converse import rewrite, summarize
+from .decisions import DecisionRanker
 from .feed import FeedRequest, Retriever, evaluate, render_rss
 from .feeds import parse_date
 from .index import Index, build_index
@@ -50,10 +51,12 @@ SEARCH_SINCE = datetime(2000, 1, 1, tzinfo=UTC)
 SEARCH_FRESH = 180.0
 SEARCH_LIMIT = 20
 STATIC = Path(__file__).parent / "static"
-# Ranking models the search page offers, as on the NLWeb samples' page (askhub/static/app.js). Chat models
-# only: the categorical prompt needs a model that writes JSON verdicts. "" is the service's default.
+DECISION_MODELS = nlweb.DECISION_MODELS
+# Ranking models the search page offers, as on the NLWeb samples' page (askhub/static/app.js). "" is the
+# service's default. Ids in DECISION_MODELS are decision models, called through the Decisions API.
 RANKING_CHOICES = {
     "": "Auto",
+    "typesafe/jev-1.14": "Jev 1.14",  # a decision model: scores only, so results show the item's description
     "openai/gpt-oss-20b": "GPT-OSS 20B",
     "openai/gpt-oss-120b": "GPT-OSS 120B",
     "google/gemma-4-26b-a4b-it": "Gemma 4 26B",
@@ -122,6 +125,8 @@ class Services:
             return self.ranker
         if not self.config.openrouter_key:
             return None
+        if model not in self._rankers and model in DECISION_MODELS:
+            self._rankers[model] = DecisionRanker(self.config.openrouter_key, model, self.config.openrouter_base_url)
         if model not in self._rankers:
             self._rankers[model] = OpenRouter(
                 self.config.openrouter_key, self.config.openrouter_base_url, model, self.config.embedding_model,
@@ -246,6 +251,9 @@ class Services:
             self._task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._task
+        for ranker in self._rankers.values():
+            if hasattr(ranker, "aclose"):
+                await ranker.aclose()
         await self.store.close()
 
 
