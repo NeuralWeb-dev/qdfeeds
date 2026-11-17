@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import hashlib
+import json
 import logging
 import os
 import re
@@ -16,21 +17,29 @@ import numpy as np
 import uvicorn
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import FileResponse, JSONResponse, PlainTextResponse, Response
+from starlette.responses import (
+    FileResponse,
+    JSONResponse,
+    PlainTextResponse,
+    Response,
+    StreamingResponse,
+)
 from starlette.routing import Route
 
 # Pages change with each deploy; without this browsers reuse a stale copy.
 NO_CACHE = {"cache-control": "no-cache"}
 
-from . import nlweb
+from . import nlweb, usage
 from .activity import Activity, iso
 from .config import Config, load_config
+from .converse import rewrite, summarize
 from .feed import FeedRequest, Retriever, evaluate, render_rss
 from .feeds import parse_date
 from .index import Index, build_index
 from .ingest import load_sources, refresh, select_sources
 from .providers import Embeddings, HashEmbeddings, KeywordRanker, OpenRouter, Ranker
 from .rank import RankingError
+from .usage import UsageLedger
 from .verticals import BY_ID as VERTICALS
 from .verticals import resolve as resolve_vertical
 
@@ -41,6 +50,19 @@ SEARCH_SINCE = datetime(2000, 1, 1, tzinfo=UTC)
 SEARCH_FRESH = 180.0
 SEARCH_LIMIT = 20
 STATIC = Path(__file__).parent / "static"
+# Ranking models the search page offers, as on the NLWeb samples' page (askhub/static/app.js). Chat models
+# only: the categorical prompt needs a model that writes JSON verdicts. "" is the service's default.
+RANKING_CHOICES = {
+    "": "Auto",
+    "openai/gpt-oss-20b": "GPT-OSS 20B",
+    "openai/gpt-oss-120b": "GPT-OSS 120B",
+    "google/gemma-4-26b-a4b-it": "Gemma 4 26B",
+    "google/gemma-4-31b-it": "Gemma 4 31B",
+    "google/gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
+    "google/gemini-3.1-flash-lite": "Gemini 3.1 Flash Lite",
+    "google/gemini-3.5-flash-lite": "Gemini 3.5 Flash Lite",
+    "google/gemini-3.8-flash": "Gemini 3.8 Flash",
+}
 
 
 class Services:
@@ -52,10 +74,14 @@ class Services:
     refresh. Tests and offline runs use SQLite.
     """
 
-    def __init__(self, config: Config, embedder: Embeddings, ranker: Ranker):
+    def __init__(self, config: Config, embedder: Embeddings, ranker: Ranker, writer: Ranker | None = None):
         self.config = config
         self.embedder = embedder
         self.ranker = ranker
+        # Rewrites follow-ups and writes the search page's summaries; None offline (follow-ups are
+        # searched as typed and there is no summary).
+        self.writer = writer
+        self._rankers: dict[str, Ranker] = {}
         self.activity = Activity()
         self.sources = load_sources(config.sources_path)
         self.collections = {s.name: s.collection for s in self.sources}
@@ -87,6 +113,21 @@ class Services:
         # this every poll pays a Cosmos vector query and eight LLM calls.
         self._feeds: dict[tuple, tuple[float, bytes, str]] = {}
         self.feed_ttl = config.refresh_minutes * 60
+
+    def ranker_for(self, model: str) -> Ranker | None:
+        """The ranker for a model the search page chose: the default for "" or the default's own id, one
+        OpenRouter client per other model, made on first use. None when no other model can be called
+        (offline, no OpenRouter key)."""
+        if not model or model == self.config.ranking_model:
+            return self.ranker
+        if not self.config.openrouter_key:
+            return None
+        if model not in self._rankers:
+            self._rankers[model] = OpenRouter(
+                self.config.openrouter_key, self.config.openrouter_base_url, model, self.config.embedding_model,
+                provider_sort=self.config.provider_sort or None,
+            )
+        return self._rankers[model]
 
     @property
     def retriever(self) -> Retriever:
@@ -218,9 +259,19 @@ def build_services(config: Config | None = None) -> Services:
             config.embedding_model,
             provider_sort=config.provider_sort or None,
         )
-        return Services(config, provider, provider)
+        # A reasoning model spends its output budget thinking before it writes: askhub saw gpt-oss-120b
+        # return empty summaries at 400 tokens, so the writer gets room.
+        writer = OpenRouter(
+            config.openrouter_key, config.openrouter_base_url, config.writing_model, config.embedding_model,
+            provider_sort=config.provider_sort or None, max_tokens=4000, phase="writing",
+        )
+        return Services(config, provider, provider, writer)
     logger.warning("OPENROUTER_API_KEY not set: using hash embeddings and keyword ranking")
     return Services(config, HashEmbeddings(), KeywordRanker())
+
+
+def _line(event: dict) -> bytes:
+    return (json.dumps(event, ensure_ascii=False) + "\n").encode()
 
 
 def _feed_response(request: Request, body: bytes, etag: str) -> Response:
@@ -310,36 +361,81 @@ def create_app(services: Services) -> Starlette:
         return _feed_response(request, body, etag)
 
     async def search_api(request: Request) -> Response:
-        """One tab of the NYT search page as JSON: the archive and live feeds, newest first among the
-        matches with a preference for recent items, or an NLWeb backend for Cooking and Wirecutter."""
-        params = request.query_params
-        q = params.get("q", "").strip()[:300]
-        vertical = VERTICALS.get(params.get("vertical", "all"))
+        """One turn of the NYT search page, streamed as JSON lines.
+
+        A turn is a question in one tab, with the conversation's earlier queries (each already standing
+        alone) and the last turn's result titles, so a follow-up is rewritten to stand alone before it is
+        searched. Results come first: the archive and live feeds, newest first among the matches with a
+        preference for recent items, or an NLWeb backend for Cooking and Wirecutter. The summary follows,
+        then what this turn's model calls cost, by model and step. Lines: {"type": "query" | "results" |
+        "summary" | "summary_error" | "usage", ...}. A failed search is an HTTP error, never an empty list."""
+        if request.method == "POST":
+            try:
+                body = await request.json()
+            except ValueError:
+                return JSONResponse({"error": "the body must be JSON"}, status_code=400)
+            if not isinstance(body, dict):
+                return JSONResponse({"error": "the body must be a JSON object"}, status_code=400)
+        else:
+            body = dict(request.query_params)
+        q = str(body.get("q") or "").strip()[:300]
+        vertical = VERTICALS.get(str(body.get("vertical") or "all"))
         if not q or vertical is None:
             return JSONResponse({"error": "q and a known vertical are required"}, status_code=400)
-        key = ("api", q, vertical.id)
-        cached = services._feeds.get(key)
-        if cached and time.monotonic() - cached[0] < services.feed_ttl:
-            return JSONResponse(cached[1])
-        base = str(request.base_url).rstrip("/")
-        if vertical.nlweb_url:
+        previous = [str(x).strip()[:300] for x in body.get("previous_queries") or [] if str(x).strip()][-5:]
+        shown = [str(x).strip()[:200] for x in body.get("previous_results") or [] if str(x).strip()][:10]
+        want_summary = body.get("summarize", True) not in (False, "0", "false")
+        model = str(body.get("ranking_model") or "")
+        if model not in RANKING_CHOICES:
+            return JSONResponse({"error": f"ranking_model must be one of: {', '.join(m for m in RANKING_CHOICES if m)}"},
+                                status_code=400)
+        ranker = None if vertical.nlweb_url else services.ranker_for(model)  # an NLWeb backend ranks for itself
+        if ranker is None and not vertical.nlweb_url:
+            return JSONResponse({"error": "only the default ranking model is available here"}, status_code=400)
+        ledger = UsageLedger()
+        usage.CURRENT.set(ledger)
+        notices: list[str] = []
+        standalone = q
+        if previous and services.writer is not None:
             try:
-                rows = await nlweb.ask(vertical.nlweb_url, vertical.nlweb_site, q, SEARCH_LIMIT)
-                if not rows:  # these backends now and then answer "no results" to a query they answer the next time
-                    rows = await nlweb.ask(vertical.nlweb_url, vertical.nlweb_site, q, SEARCH_LIMIT)
+                standalone = await rewrite(services.writer, q, previous, shown)
+            except Exception as exc:  # noqa: BLE001 - said on the page; the question is searched as typed
+                logger.warning("follow-up rewrite failed: %s", type(exc).__name__)
+                notices.append("This could not be read as a follow-up, so it was searched as typed.")
+        key = ("api", standalone, vertical.id, want_summary, model)
+        cached = services._feeds.get(key)
+        hit = bool(cached and time.monotonic() - cached[0] < services.feed_ttl)
+        entry: dict = cached[1] if hit else {}
+        summary_error = ""  # this turn's only: a failed summary is reported, never cached
+        base = str(request.base_url).rstrip("/")
+        if hit:
+            pass
+        elif vertical.nlweb_url:
+            mode = "summarize" if want_summary else "list"
+            try:
+                answer = await nlweb.ask(vertical.nlweb_url, vertical.nlweb_site, standalone, SEARCH_LIMIT, mode=mode,
+                                         ranking_model=model)
+                ledger.merge(answer.usage, vertical.label)
+                if not answer.rows:  # these backends now and then answer "no results" to a query they answer the next time
+                    answer = await nlweb.ask(vertical.nlweb_url, vertical.nlweb_site, standalone, SEARCH_LIMIT, mode=mode,
+                                             ranking_model=model)
+                    ledger.merge(answer.usage, vertical.label)
             except nlweb.NLWebError as exc:
                 logger.error("nlweb %s: %s", vertical.id, exc)
                 return JSONResponse({"error": f"{vertical.label} search is unavailable"}, status_code=503)
-            body = {"vertical": vertical.id, "results": rows, "feed": None}
+            entry = {"results": answer.rows, "feed": None, "summary": answer.summary}
+            if want_summary and answer.rows and not answer.summary:
+                summary_error = next((n for n in answer.notices if "unavailable" in n.lower()),
+                                     f"{vertical.label} sent no summary")
         else:
             if services.ready_at is None:
                 return JSONResponse({"error": "index not built yet"}, status_code=503)
             scope = services.verticals[vertical.id]
-            feed_request = FeedRequest(q, SEARCH_SINCE, SEARCH_LIMIT, "relevant", None, SEARCH_FRESH,
+            feed_request = FeedRequest(standalone, SEARCH_SINCE, SEARCH_LIMIT, "relevant", None, SEARCH_FRESH,
                                        scope.sources, scope.collections, vertical.id)
             try:
                 matches = await evaluate(
-                    feed_request, services.retriever, services.embedder, services.ranker,
+                    feed_request, services.retriever, services.embedder, ranker,
                     candidate_count=services.config.candidate_count, max_candidates=services.config.max_candidates, batch_size=services.config.batch_size,
                     window_days=services.config.window_days,
                 )
@@ -348,20 +444,50 @@ def create_app(services: Services) -> Starlette:
                 return JSONResponse({"error": "ranking unavailable"}, status_code=503)
             rows = [{
                 "title": m.item.title or m.item.url, "url": m.item.url, "summary": m.item.content[:400],
-                "why": m.why, "strong": m.category == "strong", "image": None,
+                "why": m.why, "image": None,
                 "date": (m.item.published_at or m.item.ingested_at).isoformat(),
                 "source": m.item.source_title or m.item.source,
             } for m in matches]
-            # The feed a reader (or an email digest) follows: new matches as they are published.
-            feed = f"{base}/feed.xml?" + urlencode({"q": q, "vertical": vertical.id})
-            body = {"vertical": vertical.id, "results": rows, "feed": feed}
-        if len(services._feeds) > 5000:
-            services._feeds.pop(next(iter(services._feeds)))
-        services._feeds[key] = (time.monotonic(), body, "")
-        return JSONResponse(body)
+            # The feed a reader (or an email digest) follows: new matches as they are published. Feeds always
+            # rank with the default model.
+            entry = {"results": rows, "feed": f"{base}/feed.xml?" + urlencode({"q": standalone, "vertical": vertical.id}),
+                     "summary": None}
+        if not hit and not summary_error:
+            if len(services._feeds) > 5000:
+                services._feeds.pop(next(iter(services._feeds)))
+            services._feeds[key] = (time.monotonic(), entry, "")
+
+        async def lines():
+            usage.CURRENT.set(ledger)
+            error = summary_error
+            yield _line({"type": "query", "value": standalone, "rewritten": standalone != q})
+            yield _line({"type": "results", "results": entry["results"], "feed": entry["feed"],
+                         "notices": notices, "cached": hit})
+            if want_summary and entry["results"]:
+                if not entry["summary"] and not error and not vertical.nlweb_url:
+                    if services.writer is None:
+                        error = "no summary model is configured"
+                    else:
+                        try:
+                            # Stored on the cached entry, so the same turn asked again is not summarized twice.
+                            entry["summary"] = await summarize(services.writer, standalone, entry["results"])
+                        except Exception as exc:  # noqa: BLE001 - reported on the page, not cached
+                            logger.warning("summary failed: %s: %s", type(exc).__name__, str(exc)[:120])
+                            error = "the summary model failed"
+                if entry["summary"]:
+                    yield _line({"type": "summary", "value": entry["summary"]})
+                elif error:
+                    yield _line({"type": "summary_error", "message": error})
+            yield _line({"type": "usage", "cached": hit, **ledger.wire()})
+
+        return StreamingResponse(lines(), media_type="application/x-ndjson", headers=NO_CACHE)
 
     async def nyt_search(_: Request) -> Response:
         return FileResponse(STATIC / "nyt-search.html", headers=NO_CACHE)
+
+    async def ranking_models(_: Request) -> Response:
+        return JSONResponse({"default": services.config.ranking_model or "",
+                             "models": [{"id": k, "label": v} for k, v in RANKING_CHOICES.items()]})
 
     async def verticals(_: Request) -> Response:
         return JSONResponse([{"id": v.id, "label": v.label, "examples": list(v.examples),
@@ -428,8 +554,9 @@ def create_app(services: Services) -> Starlette:
             Route("/", home),
             Route("/nyt", nyt),
             Route("/nyt/search", nyt_search),
-            Route("/api/search", search_api),
+            Route("/api/search", search_api, methods=["GET", "POST"]),
             Route("/api/verticals", verticals),
+            Route("/api/models", ranking_models),
             Route("/npr", npr),
             Route("/tal", tal_page),
             Route("/feed.xml", feed),

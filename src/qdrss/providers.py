@@ -13,6 +13,8 @@ from typing import Any, Protocol
 import numpy as np
 from openai import AsyncOpenAI
 
+from . import usage
+
 logger = logging.getLogger(__name__)
 
 
@@ -120,21 +122,28 @@ class OpenRouter:
         embedding_model: str,
         provider_sort: str | None = "throughput",
         timeout: float = 60.0,
+        max_tokens: int = 1500,
+        phase: str = "ranking",
     ):
         self.client = AsyncOpenAI(api_key=key, base_url=base_url, timeout=timeout, max_retries=1)
         self.ranking_model = ranking_model
+        self.max_tokens = max_tokens
+        self.phase = phase  # the step a call is counted under in a request's usage, unless the caller names one
         self.provider_sort = provider_sort
         self.model = f"openrouter:{embedding_model}"
         self.embedding_model = embedding_model
         self.health = ProviderHealth()
 
     async def embed(self, texts: list[str]) -> np.ndarray:
+        started = time.monotonic()
         response = await self.client.embeddings.create(model=self.embedding_model, input=texts)
+        usage.record(getattr(response, "model", None) or self.embedding_model, "embedding",
+                     getattr(response, "usage", None), time.monotonic() - started)
         matrix = np.asarray([d.embedding for d in response.data], dtype=np.float32)
         matrix /= np.maximum(np.linalg.norm(matrix, axis=1, keepdims=True), 1e-12)
         return matrix
 
-    async def _ranking_call(self, instruction: str, payload: dict[str, Any], ignore: list[str]):
+    async def _ranking_call(self, instruction: str, payload: dict[str, Any], ignore: list[str], phase: str):
         provider: dict[str, Any] = {}
         if self.provider_sort:
             provider["sort"] = self.provider_sort
@@ -146,7 +155,8 @@ class OpenRouter:
             # parameter sent (json_object output), so the second try is a more capable one.
             provider["ignore"] = sorted({*ignore, *avoided})
             provider["require_parameters"] = True
-        return await self.client.chat.completions.create(
+        started = time.monotonic()
+        response = await self.client.chat.completions.create(
             model=self.ranking_model,
             messages=[
                 {"role": "system", "content": instruction},
@@ -157,9 +167,12 @@ class OpenRouter:
             # Reasoning models spend max_tokens on thinking first, so effort is
             # low; the cap bounds the damage when a model degenerates into
             # thousands of lines of broken JSON (seen with gpt-oss-20b).
-            max_tokens=1500,
+            max_tokens=self.max_tokens,
             extra_body={"reasoning": {"effort": "low"}, **({"provider": provider} if provider else {})},
         )
+        usage.record(getattr(response, "model", None) or self.ranking_model, phase,
+                     getattr(response, "usage", None), time.monotonic() - started)
+        return response
 
     @staticmethod
     def _parse(response) -> tuple[Any, str]:
@@ -173,8 +186,9 @@ class OpenRouter:
             head = choice.message.content[:160].replace("\n", "\\n")
             return None, f"malformed JSON ({len(choice.message.content)} chars, finish={choice.finish_reason}): {head!r}"
 
-    async def structured(self, instruction: str, payload: dict[str, Any]) -> dict[str, Any]:
-        response = await self._ranking_call(instruction, payload, [])
+    async def structured(self, instruction: str, payload: dict[str, Any], phase: str | None = None) -> dict[str, Any]:
+        phase = phase or self.phase
+        response = await self._ranking_call(instruction, payload, [], phase)
         result, problem = self._parse(response)
         self.health.record(getattr(response, "provider", None), not problem, problem=problem)
         if problem:
@@ -186,7 +200,7 @@ class OpenRouter:
             logger.warning("ranking call failed: %s (provider=%s)%s", problem, failed,
                            "; retrying without it" if failed else "")
             if failed:
-                response = await self._ranking_call(instruction, payload, [failed])
+                response = await self._ranking_call(instruction, payload, [failed], phase)
                 result, problem = self._parse(response)
                 self.health.record(getattr(response, "provider", None), not problem, problem=problem)
         if problem:

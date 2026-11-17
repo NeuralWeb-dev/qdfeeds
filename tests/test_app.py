@@ -30,6 +30,7 @@ def make_services(tmp_path) -> Services:
         openrouter_key="",
         openrouter_base_url="",
         ranking_model="",
+        writing_model="",
         embedding_model="",
         provider_sort="",
         cosmos_endpoint="",
