@@ -33,6 +33,8 @@ class Config:
     ingest_in_app: bool
     memory_collections: tuple[str, ...] = ()
     memory_snapshot: str = ""
+    vector_url: str = ""  # the VM's vector service (vectors.py); "" searches here
+    vector_token: str = ""
 
     @property
     def db_path(self) -> Path:
@@ -69,4 +71,6 @@ def load_config() -> Config:
         ingest_in_app=env.get("QDRSS_INGEST_IN_APP", "true").lower() in ("1", "true", "yes"),
         memory_collections=tuple(c for c in env.get("QDRSS_MEMORY_COLLECTIONS", "").split(",") if c.strip()),
         memory_snapshot=env.get("QDRSS_MEMORY_SNAPSHOT", ""),
+        vector_url=env.get("QDRSS_VECTOR_URL", ""),
+        vector_token=env.get("QDRSS_VECTOR_TOKEN", ""),
     )

@@ -100,7 +100,12 @@ class Services:
 
             self.store = Store(config.db_path)
         self.memory = None
-        if self.cosmos and config.memory_collections and config.memory_snapshot:
+        self.remote = None
+        if self.cosmos and config.vector_url:
+            from .vectors import RemoteRetriever
+
+            self.remote = RemoteRetriever(config.vector_url, config.vector_token, self.store)
+        elif self.cosmos and config.memory_collections and config.memory_snapshot:
             from .memory import MemoryRetriever
 
             self.memory = MemoryRetriever(self.store, self.collections, list(config.memory_collections),
@@ -136,6 +141,8 @@ class Services:
 
     @property
     def retriever(self) -> Retriever:
+        if self.remote:
+            return self.remote
         if self.memory:
             return self.memory
         return self.store if self.cosmos else self.index  # type: ignore[return-value]
@@ -251,6 +258,8 @@ class Services:
             self._task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._task
+        if self.remote:
+            await self.remote.aclose()
         for ranker in self._rankers.values():
             if hasattr(ranker, "aclose"):
                 await ranker.aclose()
@@ -541,6 +550,7 @@ def create_app(services: Services) -> Starlette:
                 "store": "cosmos" if services.cosmos else "sqlite",
                 "ranking_providers": getattr(services.ranker, "health", None) and services.ranker.health.report() or {},
                 "in_memory": services.memory.status if services.memory else {},
+                "vector_service": services.remote.status if services.remote else None,
                 "items": await services.store.count(),
                 "index_built_at": services.ready_at.isoformat() if services.ready_at else None,
                 "last_refresh": services.last_refresh,
