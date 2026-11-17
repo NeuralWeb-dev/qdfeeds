@@ -168,5 +168,19 @@ def test_a_jev_ranked_recipe_shows_its_own_description_or_none():
     bare = {"name": "Ragu", "url": "https://c.test/2", "description": "Ragu author X total time PT4H",
             "schema_object": {"name": "Ragu"}}
     assert nlweb._row(described, own_description=True)["summary"] == "The recipe's own words."
-    assert nlweb._row(bare, own_description=True)["summary"] == ""
+    assert nlweb._row(bare, own_description=True)["summary"] == ""  # not a Recipe: no fields to describe it by
     assert nlweb._row(described)["summary"] == "Written by the describer"
+
+
+def test_a_recipe_without_a_description_gets_one_from_its_own_fields():
+    schema = {"@type": "Recipe", "name": "Ragu Alla Bolognese", "author": {"@type": "Person", "name": "Molly O'Neill"},
+              "totalTime": "PT4H30M", "recipeYield": "6 servings", "recipeCuisine": "italian",
+              "recipeCategory": "dinner, weeknight, main course", "keywords": "beef broth, ground beef, pork, fall",
+              "aggregateRating": {"ratingValue": 4, "ratingCount": 284}}
+    assert nlweb.recipe_line(schema) == ("Italian dinner by Molly O'Neill. 4 hr 30 min · 6 servings · rated 4/5 by 284 cooks. "
+                                         "Keywords: beef broth, ground beef, pork, fall.")
+    row = nlweb._row({"name": "Ragu", "url": "https://c.test/2", "description": "Ragu author X", "schema_object": schema},
+                     own_description=True)
+    assert row["summary"].startswith("Italian dinner by Molly O'Neill.")
+    assert nlweb.recipe_line({"@type": "Recipe", "totalTime": "PT45M"}) == "45 min."
+    assert nlweb.recipe_line({"@type": "Product", "name": "x"}) == ""
