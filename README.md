@@ -170,7 +170,8 @@ a systemd user unit, `~/.config/systemd/user/qdrss-vectors.service`, env in
 VM's internal address 10.128.0.2:8090 with a shared token. The web app has
 `QDRSS_VECTOR_URL`/`QDRSS_VECTOR_TOKEN` set and reaches it through Direct VPC egress
 (`--network default --subnet default --vpc-egress private-ranges-only`); if the VM does not
-answer it searches Cosmos instead and counts that in `/health` (`vector_service.fallbacks`).
+answer the search fails with 503 "vector search unavailable" (no fallback to Cosmos) and
+`/health` counts it (`vector_service.failures`).
 Deploy the VM side with `git pull && .venv/bin/pip install . && systemctl --user restart
 qdrss-vectors` in `~/services/qdrss-vectors`; it takes about a minute to load.
 

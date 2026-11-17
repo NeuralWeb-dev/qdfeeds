@@ -41,6 +41,7 @@ from .ingest import load_sources, refresh, select_sources
 from .providers import Embeddings, HashEmbeddings, KeywordRanker, OpenRouter, Ranker
 from .rank import RankingError
 from .usage import UsageLedger
+from .vectors import VectorServiceError
 from .verticals import BY_ID as VERTICALS
 from .verticals import resolve as resolve_vertical
 
@@ -104,7 +105,7 @@ class Services:
         if self.cosmos and config.vector_url:
             from .vectors import RemoteRetriever
 
-            self.remote = RemoteRetriever(config.vector_url, config.vector_token, self.store)
+            self.remote = RemoteRetriever(config.vector_url, config.vector_token)
         elif self.cosmos and config.memory_collections and config.memory_snapshot:
             from .memory import MemoryRetriever
 
@@ -369,6 +370,8 @@ def create_app(services: Services) -> Starlette:
         except RankingError as exc:
             logger.error("ranking failed: %s", exc)
             return PlainTextResponse(f"ranking unavailable: {exc}", status_code=503)
+        except VectorServiceError as exc:
+            return PlainTextResponse(f"vector search unavailable: {exc}", status_code=503)
         body = render_rss(feed_request, matches, base)
         etag = '"' + hashlib.sha256(",".join(m.item.id for m in matches).encode()).hexdigest()[:24] + '"'
         if key:
@@ -459,6 +462,8 @@ def create_app(services: Services) -> Starlette:
             except RankingError as exc:
                 logger.error("ranking failed: %s", exc)
                 return JSONResponse({"error": "ranking unavailable"}, status_code=503)
+            except VectorServiceError:
+                return JSONResponse({"error": "vector search unavailable"}, status_code=503)
             rows = [{
                 "title": m.item.title or m.item.url, "url": m.item.url, "summary": m.item.content[:400],
                 "why": m.why, "image": None,

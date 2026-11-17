@@ -4,10 +4,11 @@ from datetime import UTC, datetime
 
 import httpx
 import numpy as np
+import pytest
 from starlette.testclient import TestClient
 
 from qdrss.models import Candidate
-from qdrss.vectors import RemoteRetriever, create_vector_app, request_body
+from qdrss.vectors import RemoteRetriever, VectorServiceError, create_vector_app, request_body
 
 from .conftest import make_item
 
@@ -19,15 +20,6 @@ class Memory:
     async def search(self, vector, since, collection, limit, sources=None, collections=None):
         self.asked = (vector.tolist(), since, collection, limit, sources, collections)
         return [Candidate(make_item("1", "rust release", "notes"), "vector", 0.9)]
-
-
-class Cosmos:
-    def __init__(self):
-        self.searched = 0
-
-    async def search(self, *args):
-        self.searched += 1
-        return [Candidate(make_item("2", "from cosmos"), "vector", 0.5)]
 
 
 def test_the_service_answers_a_search_with_its_items_and_refuses_without_the_token():
@@ -45,14 +37,34 @@ def test_the_service_answers_a_search_with_its_items_and_refuses_without_the_tok
                             frozenset({"nytnews"}))
 
 
-async def test_the_client_returns_the_services_candidates_and_falls_back_to_cosmos_when_it_fails():
+async def test_the_client_returns_the_services_candidates_and_fails_when_the_service_does():
     app = create_vector_app(Memory(), "secret", dict)
-    cosmos = Cosmos()
-    r = RemoteRetriever("http://vm.test", "secret", cosmos)
+    r = RemoteRetriever("http://vm.test", "secret")
     r.client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), headers={"authorization": "Bearer secret"})
     [c] = await r.search(np.zeros(2), None, None, 5, None, frozenset({"nytnews"}))
-    assert c.item.title == "rust release" and c.item.published_at.tzinfo and cosmos.searched == 0
+    assert c.item.title == "rust release" and c.item.published_at.tzinfo
     r.client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), headers={"authorization": "Bearer wrong"})
-    [c] = await r.search(np.zeros(2), None, None, 5)
-    assert c.item.title == "from cosmos" and cosmos.searched == 1 and r.status["fallbacks"] == 1
-    assert "401" in r.status["last_failure"]
+    with pytest.raises(VectorServiceError, match="401"):
+        await r.search(np.zeros(2), None, None, 5)
+    assert r.status["failures"] == 1 and "401" in r.status["last_failure"]
+
+
+def test_the_search_page_and_feeds_say_vector_search_is_unavailable(tmp_path, monkeypatch):
+    from qdrss.app import create_app
+
+    from .test_app import make_services
+
+    services = make_services(tmp_path)
+    services.start = lambda: None
+    services.ready_at = datetime(2026, 1, 1, tzinfo=UTC)
+
+    class Down:
+        async def search(self, *args):
+            raise VectorServiceError("ConnectError: refused")
+
+    monkeypatch.setattr(type(services), "retriever", property(lambda self: Down()))
+    with TestClient(create_app(services)) as client:
+        r = client.post("/api/search", json={"q": "rust", "vertical": "all"})
+        assert r.status_code == 503 and r.json() == {"error": "vector search unavailable"}
+        r = client.get("/feed.xml", params={"q": "rust"})
+        assert r.status_code == 503 and b"vector search unavailable" in r.content
