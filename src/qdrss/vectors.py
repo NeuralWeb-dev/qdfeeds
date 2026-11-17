@@ -8,8 +8,9 @@ only on its internal address, and the web app (in the VPC through Direct VPC egr
 Wire: POST /search with the query vector as base64 float32 and the same filters as Retriever.search; the answer is
 the candidates with their items. A shared token (QDRSS_VECTOR_TOKEN) is required on every search.
 
-If the VM does not answer (down, restarting, loading), the client searches Cosmos instead, which is slow but right,
-and says so in the log and in /health: a failed vector service never becomes an empty result.
+If the VM does not answer (down, restarting, loading), the search fails with VectorServiceError and the web app
+answers 503 "vector search unavailable": there is no fallback to Cosmos, and a failed vector service never becomes
+an empty result. /health counts the failures.
 """
 
 from __future__ import annotations
@@ -50,14 +51,17 @@ def request_body(vector, since, collection, limit, sources, collections) -> dict
     }
 
 
-class RemoteRetriever:
-    """The web app's retriever when QDRSS_VECTOR_URL is set: the VM first, Cosmos when the VM fails."""
+class VectorServiceError(RuntimeError):
+    pass
 
-    def __init__(self, url: str, token: str, fallback, timeout: float = 10.0):
+
+class RemoteRetriever:
+    """The web app's retriever when QDRSS_VECTOR_URL is set: every search goes to the VM."""
+
+    def __init__(self, url: str, token: str, timeout: float = 10.0):
         self.url = url.rstrip("/")
-        self.fallback = fallback
         self.client = httpx.AsyncClient(timeout=timeout, headers={"authorization": f"Bearer {token}"})
-        self.status = {"url": self.url, "last_ok": None, "last_failure": None, "fallbacks": 0}
+        self.status = {"url": self.url, "last_ok": None, "last_failure": None, "failures": 0}
 
     async def search(self, vector, since, collection, limit, sources=None, collections=None) -> list[Candidate]:
         try:
@@ -68,10 +72,10 @@ class RemoteRetriever:
             self.status["last_ok"] = time.time()
             return [Candidate(_item(r["item"]), "vector", float(r["score"])) for r in rows]
         except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
-            self.status["fallbacks"] += 1
+            self.status["failures"] += 1
             self.status["last_failure"] = f"{time.time():.0f} {type(exc).__name__}: {str(exc)[:160]}"
-            logger.warning("vector service failed (%s: %s); searching Cosmos", type(exc).__name__, str(exc)[:160])
-            return await self.fallback.search(vector, since, collection, limit, sources, collections)
+            logger.error("vector service failed: %s: %s", type(exc).__name__, str(exc)[:160])
+            raise VectorServiceError(f"{type(exc).__name__}: {str(exc)[:160]}") from exc
 
     async def aclose(self) -> None:
         await self.client.aclose()
