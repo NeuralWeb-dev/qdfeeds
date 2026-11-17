@@ -27,9 +27,13 @@ DIMENSIONS = 1536
 
 
 def snapshot(conn: psycopg.Connection, collection: str, out: Path) -> int:
-    vectors = np.zeros((1 << 15, DIMENSIONS), dtype=np.float16)
-    n = 0
+    # The vectors go straight to a memory-mapped .npy on disk: the VM holds every collection in memory for the
+    # vector service, and a 1.5 GB array for nytnews here could push it out of memory.
     tmp_items, tmp_npy = out / f".{collection}.jsonl.gz", out / f".{collection}.npy"
+    total = conn.execute("SELECT count(*) FROM items WHERE collection = %s AND embedding IS NOT NULL",
+                         (collection,)).fetchone()[0]
+    vectors = np.lib.format.open_memmap(tmp_npy, mode="w+", dtype=np.float16, shape=(total, DIMENSIONS))
+    n = 0
     with conn.cursor(name=f"snap_{collection}") as cur, gzip.open(tmp_items, "wt", encoding="utf-8") as items:
         cur.itersize = 5000
         cur.execute(
@@ -39,8 +43,8 @@ def snapshot(conn: psycopg.Connection, collection: str, out: Path) -> int:
         for row in cur:
             (id_, source, source_title, url, title, content, published_at, published_raw, ingested_at,
              coll, extra, embedding) = row
-            if n == len(vectors):
-                vectors = np.concatenate([vectors, np.zeros_like(vectors)])
+            if n == total:  # stored while we read (same transaction, so only if the count missed it): next night
+                break
             vectors[n] = embedding.to_numpy()
             items.write(("\n" if n else "") + json.dumps({
                 "id": id_, "source": source, "source_title": source_title, "url": url, "title": title,
@@ -48,8 +52,10 @@ def snapshot(conn: psycopg.Connection, collection: str, out: Path) -> int:
                 "published_raw": published_raw, "ingested_at": ingested_at.isoformat(), "collection": coll,
                 "extra": extra}))
             n += 1
-    with open(tmp_npy, "wb") as fh:
-        np.save(fh, vectors[:n])
+    vectors.flush()
+    del vectors
+    if n < total:  # fewer than counted: rewrite at the true length
+        np.save(tmp_npy, np.load(tmp_npy, mmap_mode="r")[:n])
     # Renamed into place only when complete, so an upload never takes half a snapshot.
     tmp_items.replace(out / f"{collection}.jsonl.gz")
     tmp_npy.replace(out / f"{collection}.npy")
@@ -75,7 +81,6 @@ def main() -> None:
             if args.upload:
                 subprocess.run(["gcloud", "storage", "cp", "--quiet", str(args.out / f"{name}.jsonl.gz"),
                                 str(args.out / f"{name}.npy"), args.upload.rstrip("/") + "/"], check=True)
-    return None
 
 
 if __name__ == "__main__":
