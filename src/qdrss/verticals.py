@@ -41,6 +41,9 @@ class Vertical:
 VERTICALS: tuple[Vertical, ...] = (
     Vertical("all", "All", collections=("nytnews", "nytimes"),
              examples=(
+                 "How did the midterm results change the odds of Congress passing A.I. regulation, tariff relief or a government funding deal before the end of the year?",
+                 "What connects the Nvidia export scandal, the Megaspeed investigation and the White House's China trade talks, and who in the administration knew what and when?",
+                 "Why are grocery, electricity and insurance bills still rising even as overall inflation cools, and which households are hit hardest?",
                  "What was Bessent's role in Jensen Huang's case?",
                  "How did a Singaporean shell company end up at the center of a scandal that toppled Nvidia's chief executive?",
                  "Are the new tariffs actually bringing factory jobs back to the Midwest, or just raising prices for farmers and small manufacturers?",
@@ -56,6 +59,9 @@ VERTICALS: tuple[Vertical, ...] = (
                             "nytnews_upshot", "nytnews_weather", "nytnews_obituaries", "nytnews_science",
                             "nytnews_space", "nytnews_climate", "nytnews_energyenvironment", "nytnews_health"),
              examples=(
+                 "After the midterms, which state ballot measures on abortion, minimum wage and redistricting passed, and how will they change policy next year?",
+                 "How are school districts that lost federal education funding deciding what to cut, and which students are losing services first?",
+                 "Why are home insurers pulling out of California, Florida and Louisiana, and what happens to homeowners left with only the state insurer of last resort?",
                  "How did the Texas redistricting fight push California to redraw its own maps, and which House seats changed hands because of it?",
                  "Why are measles outbreaks concentrated in Mennonite and other religious communities with low vaccination rates, and how are health officials responding?",
                  "What has happened to the farmworkers and meatpacking workers in small towns after immigration raids emptied their workplaces?",
@@ -70,6 +76,9 @@ VERTICALS: tuple[Vertical, ...] = (
     Vertical("world", "World", ("nytnews_world", "nytnews_africa", "nytnews_americas", "nytnews_asiapacific",
                                 "nytnews_europe", "nytnews_middleeast"),
              examples=(
+                 "How have Trump's tariffs and troop decisions changed how European leaders plan for defense without the United States, and who is spending more?",
+                 "What would a Russia-Ukraine ceasefire along current front lines mean for the occupied territories, sanctions and Ukrainian refugees in Europe?",
+                 "How is China using its control of rare earth minerals as leverage in trade talks with the U.S. and Europe, and are alternatives emerging?",
                  "How do Arab citizens of Israel feel about the war in Gaza, and has it changed their relationship with the Israeli state?",
                  "How are Ukrainian soldiers and civilians near the front lines reacting to American pressure to accept a ceasefire with Russia?",
                  "How did Javier Milei bring down inflation in Argentina, and who has paid the price for his spending cuts?",
@@ -86,6 +95,9 @@ VERTICALS: tuple[Vertical, ...] = (
                                       "nytnews_jobs", "nytnews_technology", "nytnews_personaltech",
                                       "nytnews_automobiles"),
              examples=(
+                 "How exposed are banks, pension funds and private credit firms if spending on A.I. data centers slows, and which companies carry the most debt?",
+                 "How are tariffs on steel, aluminum and Chinese parts showing up in the prices of cars, appliances and holiday gifts this year?",
+                 "What did Nvidia's board know about chips being diverted to China before Jensen Huang was pushed out, and how did investors react?",
                  "What role did Howard Lutnick and the Commerce Department play in letting Nvidia chips reach China through Megaspeed?",
                  "Which kinds of entry-level white-collar jobs are companies actually replacing with A.I., and what are new graduates doing instead?",
                  "Why are pet owners paying so much more at the vet, and who owns the clinics now?",
@@ -100,6 +112,9 @@ VERTICALS: tuple[Vertical, ...] = (
     Vertical("arts", "Arts", ("nytnews_arts", "nytnews_artanddesign", "nytnews_dance", "nytnews_music",
                               "nytnews_television", "nytnews_theater", "nytnews_movies", "nytnews_books"),
              examples=(
+                 "Which movies are leading the Oscar race this year, what did Times critics think of them, and how did they do at the box office?",
+                 "How are Hollywood studios using A.I. in visual effects, dubbing and scripts after the strikes, and what protections did actors and writers actually win?",
+                 "Which books and authors were on the Times best-books lists this year, and what themes connect the novels critics praised most?",
                  "Which Broadway revivals this season reimagine the original in a way critics loved, and which ones fell flat?",
                  "What are the best novels of the year written by first-time authors, according to the Times critics?",
                  "How are record labels and musicians fighting over A.I. songs that imitate real singers' voices?",
@@ -115,6 +130,9 @@ VERTICALS: tuple[Vertical, ...] = (
                                         "nytnews_diningandwine", "nytnews_well", "nytnews_realestate",
                                         "nytnews_tmagazine", "nytnews_magazine", "nytnews_travel"),
              examples=(
+                 "What do doctors and recent studies say about taking GLP-1 drugs long term, including muscle loss, cost and what happens when people stop?",
+                 "How are adult children managing the cost and logistics of caring for aging parents while raising their own kids?",
+                 "Is it smarter to rent or buy in high-cost cities right now, given mortgage rates, rising insurance and property taxes?",
                  "What does the research say about strength training versus walking for keeping your memory sharp after 65?",
                  "How are couples in their 70s and 80s finding love again after losing a spouse, and how do their adult children react?",
                  "Why are so many young adults giving up alcohol, and what are bars doing to keep them coming in?",
@@ -128,6 +146,9 @@ VERTICALS: tuple[Vertical, ...] = (
              )),
     Vertical("travel", "Travel", ("nytnews_travel",),
              examples=(
+                 "How are tariffs, a weaker dollar and new entry fees like Europe's ETIAS changing the cost of an international trip next year?",
+                 "Where can I go for a winter beach vacation that is warm in January, safe, not overrun and reachable with one connection from the East Coast?",
+                 "What should travelers know about new U.S. border rules, social media checks and visa changes before visiting or returning to the country?",
                  "What can you do in Lisbon for three days without spending much money or getting stuck in tourist crowds?",
                  "Which national parks are as spectacular as Yosemite or Zion but far less crowded in summer?",
                  "Is a European ski trip to Austria or Italy cheaper than skiing in Colorado once you count lift tickets?",
@@ -143,6 +164,9 @@ VERTICALS: tuple[Vertical, ...] = (
                                     "nyt_interesting_times", "nyt_the_opinions", "nyt_matter_of_opinion",
                                     "nyt_the_argument", "nyt_sway", "nyt_the_choice"),
              examples=(
+                 "What are columnists arguing Democrats should learn from the midterm results, and do they agree on whether to move left or to the center?",
+                 "Is the A.I. boom a bubble, and what do opinion writers think happens to jobs, power prices and the stock market if it bursts?",
+                 "Should the U.S. keep restricting chip sales to China after the Nvidia scandal, or do export controls backfire on American companies?",
                  "Was Nvidia right to push out Jensen Huang, and what does his downfall say about powerful tech founders?",
                  "Would a wealth tax on billionaires actually raise much money, or would the rich just move their fortunes abroad?",
                  "Why have working-class voters, including many Black and Latino men, drifted toward Republicans, and can Democrats win them back?",
@@ -156,6 +180,9 @@ VERTICALS: tuple[Vertical, ...] = (
              )),
     Vertical("audio", "Podcasts", collections=("nytimes",),  # id kept: feed URLs carry vertical=audio
              examples=(
+                 "Podcast episodes that explain how the Nvidia scandal unfolded, who the key players were and what it means for the A.I. race with China",
+                 "Episodes where experts debate whether A.I. chatbots are good or harmful for teenagers' mental health, and what parents can actually do",
+                 "Conversations about what the midterm election results reveal about American voters heading into the 2028 presidential race",
                  "Episodes where people building A.I. explain what they think it will do to jobs and to their own children's future",
                  "Podcasts that investigate wrongful convictions and the people who spent decades in prison for crimes they did not commit",
                  "Conversations about why so many middle-aged men say they have no close friends, and what to do about it",
@@ -170,6 +197,9 @@ VERTICALS: tuple[Vertical, ...] = (
     Vertical("cooking", "Cooking", nlweb_url="https://nlweb-recipes-3zepccvmbq-uc.a.run.app/ask",
              nlweb_site="nytimes",
              examples=(
+                 "A Thanksgiving menu for 12 that includes a vegan and a gluten-free guest, with dishes I can make two days ahead and only one oven",
+                 "A dairy-free, nut-free dinner a picky eight-year-old and adults will both enjoy, ready in under 40 minutes on a weeknight",
+                 "What can I make with leftover turkey, cranberry sauce and mashed potatoes that doesn't taste like Thanksgiving again?",
                  "A vegetarian Thanksgiving main that will impress my meat-eating relatives and can be made the day before",
                  "A 20-minute weeknight pasta using only pantry staples like canned tomatoes, anchovies and garlic",
                  "Sheet-pan dinners with chicken thighs and vegetables that get crispy without much work",
@@ -184,6 +214,9 @@ VERTICALS: tuple[Vertical, ...] = (
     Vertical("wirecutter", "Wirecutter", nlweb_url="https://nlweb-reviews-3zepccvmbq-uc.a.run.app/ask",
              nlweb_site="wirecutter",
              examples=(
+                 "Holiday gifts under $50 for a teenager who has everything, that Wirecutter staff actually recommend",
+                 "A quiet dishwasher and a reliable washing machine for a small apartment, and are they worth buying before tariff price increases?",
+                 "A mesh Wi-Fi system for a three-story house with thick walls, plus a router that works with my existing internet provider",
                  "A robot vacuum that handles dog hair and thick rugs without getting stuck on cords",
                  "Is an electric toothbrush worth it, and which one?",
                  "An air purifier for allergies in a small bedroom that is quiet enough to sleep with",
@@ -197,6 +230,9 @@ VERTICALS: tuple[Vertical, ...] = (
              )),
     Vertical("athletic", "The Athletic", ("nytnews_athletic_*", "nyt_athletic_*", "athletic_*", *NYT_SPORTS),
              examples=(
+                 "How did the trade deadline and injuries reshape the NFL playoff race, and which contenders have the easiest remaining schedules?",
+                 "Which NBA teams look like real title contenders a month into the season, and how much of it is luck versus sustainable play?",
+                 "How will the expanded College Football Playoff field look if the season ended today, and which conference champions get byes?",
                  "Is Jalen Brunson playing at an MVP level this season, and can the Knicks finally get past the Celtics?",
                  "Which teams can realistically challenge for the Premier League title, and what are their biggest weaknesses?",
                  "How has the rise in pitchers' elbow injuries changed the way teams develop young arms?",
