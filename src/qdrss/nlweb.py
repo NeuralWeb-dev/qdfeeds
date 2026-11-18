@@ -103,21 +103,10 @@ class Answer:
     notices: list[str] = field(default_factory=list)
 
 
-async def stream(url: str, site: str, query: str, limit: int, client: httpx.AsyncClient | None = None,
-                 mode: str = "list", ranking_model: str = "") -> AsyncIterator[tuple[str, object]]:
-    """The backend's answer as it comes: ("rows", the list so far) each time it grows, then ("answer", the
-    Answer). The backend first sends the candidates its ranker kept, one by one, then the described results
-    in rank order, then the summary. Until a result is described, a kept candidate shows as pending with the
-    record's own description (the ranker's unchecked words are not shown); a described result replaces it."""
-    payload = {"query": query, "site": site, "mode": mode, "max_results": limit}
-    if ranking_model:
-        payload["ranking_model"] = ranking_model
+async def http_events(url: str, payload: dict, client: httpx.AsyncClient | None = None) -> AsyncIterator[dict]:
+    """The events an NLWeb HTTP service streams for one /ask request."""
     own = client is None
     client = client or httpx.AsyncClient(timeout=TIMEOUT)
-    results: list[dict] = []
-    pending: list[dict] = []  # kept candidates, not yet described
-    candidates: list[dict] = []
-    answer = Answer([])
     try:
         async with client.stream("POST", url, json=payload, headers={"accept": "text/event-stream"}) as response:
             if response.status_code != 200:
@@ -129,32 +118,62 @@ async def stream(url: str, site: str, query: str, limit: int, client: httpx.Asyn
                     event = json.loads(line[5:])
                 except ValueError:
                     continue
-                kind = event.get("message_type")
-                content = event.get("content")
-                if kind in ("result", "candidate") and isinstance(content, list):
-                    if kind == "result":
-                        results.extend(_rows(content, ranking_model in DECISION_MODELS))
-                    else:
-                        candidates.extend(content)
-                        pending.extend(_rows([c for c in content if c.get("relevance") in KEPT], True))
-                    yield "rows", _merged(results, [{**r, "pending": True} for r in pending], limit)
-                elif kind == "nlws" and isinstance(content, dict) and isinstance(content.get("answer"), str):
-                    answer.summary = content["answer"].strip() or None
-                elif kind == "usage" and isinstance(content, dict):
-                    answer.usage = content
-                elif kind == "intermediate_message" and isinstance(content, str) and content.strip():
-                    answer.notices.append(content.strip())
-                elif kind in ("end-nlweb-response", "complete"):
-                    break
+                if isinstance(event, dict):
+                    yield event
     except httpx.HTTPError as exc:
         raise NLWebError(f"{url}: {type(exc).__name__}") from exc
     finally:
         if own:
             await client.aclose()
+
+
+def payload(site: str, query: str, limit: int, mode: str = "list", ranking_model: str = "") -> dict:
+    body = {"query": query, "site": site, "mode": mode, "max_results": limit}
+    if ranking_model:
+        body["ranking_model"] = ranking_model
+    return body
+
+
+async def parse(events: AsyncIterator[dict], limit: int, ranking_model: str = "") -> AsyncIterator[tuple[str, object]]:
+    """An NLWeb answer as it comes: ("rows", the list so far) each time it grows, then ("answer", the
+    Answer). The backend first sends the candidates its ranker kept, one by one, then the described results
+    in rank order, then the summary. Until a result is described, a kept candidate shows as pending with the
+    record's own description (the ranker's unchecked words are not shown); a described result replaces it.
+    `events` is an HTTP service's stream (http_events) or askhub run in this process (hosted.py)."""
+    results: list[dict] = []
+    pending: list[dict] = []  # kept candidates, not yet described
+    candidates: list[dict] = []
+    answer = Answer([])
+    async for event in events:
+        kind = event.get("message_type")
+        content = event.get("content")
+        if kind in ("result", "candidate") and isinstance(content, list):
+            if kind == "result":
+                results.extend(_rows(content, ranking_model in DECISION_MODELS))
+            else:
+                candidates.extend(content)
+                pending.extend(_rows([c for c in content if c.get("relevance") in KEPT], True))
+            yield "rows", _merged(results, [{**r, "pending": True} for r in pending], limit)
+        elif kind == "nlws" and isinstance(content, dict) and isinstance(content.get("answer"), str):
+            answer.summary = content["answer"].strip() or None
+        elif kind == "usage" and isinstance(content, dict):
+            answer.usage = content
+        elif kind == "intermediate_message" and isinstance(content, str) and content.strip():
+            answer.notices.append(content.strip())
+        elif kind in ("end-nlweb-response", "complete"):
+            break
     own_description = ranking_model in DECISION_MODELS
     answer.rows = _merged(results or _rows([c for c in candidates if c.get("relevance") in KEPT], own_description),
                           [], limit)
     yield "answer", answer
+
+
+async def stream(url: str, site: str, query: str, limit: int, client: httpx.AsyncClient | None = None,
+                 mode: str = "list", ranking_model: str = "") -> AsyncIterator[tuple[str, object]]:
+    """parse() over an NLWeb HTTP service's answer."""
+    events = http_events(url, payload(site, query, limit, mode, ranking_model), client)
+    async for item in parse(events, limit, ranking_model):
+        yield item
 
 
 async def ask(url: str, site: str, query: str, limit: int, client: httpx.AsyncClient | None = None,

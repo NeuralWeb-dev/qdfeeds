@@ -66,7 +66,7 @@ def test_select_sources_by_collection():
 def test_every_vertical_resolves_against_the_manifest():
     from qdrss.verticals import VERTICALS, resolve
     sources = load_sources(MANIFEST)
-    scopes = {v.id: resolve(v, sources, strict=True) for v in VERTICALS if not v.nlweb_url}
+    scopes = {v.id: resolve(v, sources, strict=True) for v in VERTICALS if not v.askhub}
     for vid, scope in scopes.items():
         assert scope.sources or scope.collections, vid
     assert scopes["travel"].sources == {"nytnews_travel"}

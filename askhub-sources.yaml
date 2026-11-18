@@ -1,0 +1,24 @@
+# Where each collection comes from.
+#
+# An entry with a `url` is downloaded at startup and rechecked on the refresh
+# timer. An entry with only a `file` ships with the application and is read from
+# its bundled corpus (src/askhub/corpus, built by tools/convert.py).
+#
+# The section a collection sits in is its kind, which is what the UI's scope
+# filter uses.
+
+recipes:
+- name: nytimes
+  file: nytimes.jsonl
+movies:
+- name: imdb
+  file: imdb.jsonl
+reviews:
+- name: wirecutter
+  file: wirecutter.jsonl
+trails:
+- name: alltrails
+  file: alltrails.jsonl
+homes:
+- name: zillow
+  file: zillow.jsonl
