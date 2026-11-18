@@ -34,6 +34,9 @@ class PostgresStore:
             f"host={host} dbname={database} user={user} password={password} connect_timeout=10",
             min_size=1, max_size=max_size, open=False, configure=self._configure,
             kwargs={"autocommit": True, "row_factory": dict_row},
+            # Each connection is tested as it is handed out: a restart of the VM's Postgres leaves the pool's
+            # idle connections closed, and without the check the first request to take one failed (a 500).
+            check=AsyncConnectionPool.check_connection,
         )
 
     @staticmethod
