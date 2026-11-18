@@ -1,4 +1,4 @@
-"""A decision model as the ranker (Jev on OpenRouter's Decisions API).
+"""A decision model as the ranker (Jev or Gemini Decision 1, on OpenRouter's Decisions API).
 
 A decision model answers one closed question per record, how well it satisfies the query on a fixed
 five-level scale, and writes nothing else. So a match it keeps carries no reason, and the page shows the
