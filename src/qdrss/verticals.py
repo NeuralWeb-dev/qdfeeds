@@ -97,7 +97,7 @@ VERTICALS: tuple[Vertical, ...] = (
                  "Why are pet owners paying so much more at the vet, and who owns the clinics now?",
                  "Why are car dealers stuck with unsold electric vehicles after the federal tax credit expired?",
                  "If the Fed keeps cutting rates, why are mortgage rates for first-time home buyers still above six percent?",
-                 "How did the Google search antitrust ruling change the deal that makes Google the default search engine on iPhones?",
+                 "Why are layoffs rising at big tech and consulting firms even as profits stay high, and which jobs are being cut?",
                  "Which American companies moved production out of China because of tariffs, and where did they go?",
                  "News about how Wall Street and the Fed are reacting to A.I. bubble fears",
                  "Stories about workers organizing unions at Starbucks, Amazon and car plants",
