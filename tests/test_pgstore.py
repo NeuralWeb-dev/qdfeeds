@@ -50,3 +50,15 @@ async def test_a_failed_fetch_keeps_the_previous_validators(store):
     assert (await store.source_state("s"))["last_error"] is None
     [row] = await store.all_sources()
     assert row["name"] == "s" and row["last_error"] is None
+
+
+async def test_connections_closed_by_a_postgres_restart_are_replaced_not_failed(store):
+    """A VM restart closes every idle connection in the pool; the next request still succeeds."""
+    async with store.pool.connection() as conn:
+        mine = (await (await conn.execute("SELECT pg_backend_pid() AS pid")).fetchone())["pid"]
+    other = PostgresStore(HOST, os.environ["QDRSS_PG_PASSWORD"], database="qdrss_test", max_size=1)
+    await other.setup()
+    async with other.pool.connection() as conn:
+        await conn.execute("SELECT pg_terminate_backend(%s)", (mine,))
+    await other.close()
+    assert await store.count() == 0
