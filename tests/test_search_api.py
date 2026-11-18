@@ -8,6 +8,7 @@ from starlette.testclient import TestClient
 
 from qdrss import nlweb, usage
 from qdrss.app import Services, create_app
+from qdrss.hosted import HostedError
 from qdrss.index import build_index
 from qdrss.providers import HashEmbeddings, KeywordRanker
 from qdrss.usage import UsageLedger
@@ -124,33 +125,65 @@ async def test_no_summary_when_not_asked(tmp_path):
         assert "summary" not in t and "summary_error" not in t and writer.calls == []
 
 
-async def test_a_cooking_turn_carries_the_backends_summary_and_cost(tmp_path, monkeypatch):
-    seen = {}
+class FakeHosted:
+    """askhub in process (hosted.py), answering with fixed NLWeb events and recording what it was asked."""
 
-    lasagna = {"title": "Lasagna", "url": "https://cooking.test/1", "summary": "", "why": "", "image": None,
-               "date": None, "source": "Recipe"}
+    def __init__(self, events=()):
+        self.events_out, self.asked = list(events), []
 
-    async def stream(url, site, query, limit, client=None, mode="list", ranking_model=""):
-        seen.update(query=query, mode=mode, model=ranking_model)
-        yield "rows", [{**lasagna, "pending": True}]
-        yield "answer", nlweb.Answer(
-            [{"title": "Lasagna", "url": "https://cooking.test/1", "summary": "", "why": "", "image": None,
-              "date": None, "source": "Recipe"}],
-            summary="Make the lasagna.",
-            usage={"models": [{"model": "openai/gpt-oss-20b", "calls": 3, "total_tokens": 900, "cost": 0.0004,
-                               "phases": {"ranking": 3}}]},
-        )
+    def start(self):
+        pass
 
-    monkeypatch.setattr(nlweb, "stream", stream)
+    async def aclose(self):
+        pass
+
+    def status(self):
+        return {}
+
+    async def events(self, collection, payload):
+        self.asked.append((collection, payload))
+        for event in self.events_out:
+            yield event
+
+
+LASAGNA = {"name": "Lasagna", "url": "https://cooking.test/1", "schema_object": {"@type": "Recipe"}}
+
+
+async def test_a_cooking_turn_carries_the_backends_summary_and_cost(tmp_path):
+    hosted = FakeHosted([
+        {"message_type": "candidate", "content": [{**LASAGNA, "relevance": "strong"}]},
+        {"message_type": "result", "content": [{**LASAGNA, "description": "Layers of pasta."}]},
+        {"message_type": "nlws", "content": {"answer": "Make the lasagna."}},
+        {"message_type": "usage", "content": {"models": [{"model": "openai/gpt-oss-20b", "calls": 3,
+                                                          "total_tokens": 900, "cost": 0.0004,
+                                                          "phases": {"ranking": 3}}]}},
+        {"message_type": "end-nlweb-response"},
+    ])
     services = await _services(tmp_path, Writer(standalone="vegetarian lasagna"))
+    services.hosted = hosted
     with TestClient(create_app(services)) as client:
         t = turn(client, vertical="cooking", q="make it vegetarian", previous_queries=["lasagna"],
                  ranking_model="google/gemma-4-31b-it")
-        assert seen == {"query": "vegetarian lasagna", "mode": "summarize", "model": "google/gemma-4-31b-it"}
+        assert hosted.asked == [("recipes", {"query": "vegetarian lasagna", "site": "nytimes", "mode": "summarize",
+                                             "max_results": 20, "ranking_model": "google/gemma-4-31b-it"})]
         assert t["summary"]["value"] == "Make the lasagna." and t["results"]["feed"] is None
+        assert t["results"]["results"][0]["summary"] == "Layers of pasta."
         assert "pending" not in t["results"]["results"][0] and "partial" not in t["results"]
         phases = {row["model"]: row["phases"] for row in t["usage"]["models"]}
         assert phases == {"openai/gpt-oss-20b": {"Cooking ranking": 3}, "test/writer": {"rewrite": 1}}
+
+
+async def test_a_failing_hosted_tab_is_a_503_not_an_empty_list(tmp_path):
+    class Broken(FakeHosted):
+        async def events(self, collection, payload):
+            raise HostedError("recipes: keyword index missing")
+            yield
+
+    services = await _services(tmp_path, Writer())
+    services.hosted = Broken()
+    with TestClient(create_app(services)) as client:
+        r = client.post("/api/search", json={"vertical": "cooking", "q": "soup"})
+        assert r.status_code == 503 and r.json() == {"error": "Cooking search is unavailable"}
 
 
 async def test_bad_requests(tmp_path):

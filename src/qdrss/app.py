@@ -37,6 +37,7 @@ from .converse import rewrite, summarize
 from .decisions import DecisionRanker
 from .feed import FeedRequest, Retriever, evaluate, evaluate_stream, render_rss
 from .feeds import parse_date
+from .hosted import Hosted
 from .index import Index, build_index
 from .ingest import load_sources, refresh, select_sources
 from .providers import Embeddings, HashEmbeddings, KeywordRanker, OpenRouter, Ranker
@@ -92,7 +93,7 @@ class Services:
         self.sources = load_sources(config.sources_path)
         self.collections = {s.name: s.collection for s in self.sources}
         # Each search-page tab's scope (collections or sources), resolved once.
-        self.verticals = {v.id: resolve_vertical(v, self.sources) for v in VERTICALS.values() if not v.nlweb_url}
+        self.verticals = {v.id: resolve_vertical(v, self.sources) for v in VERTICALS.values() if not v.askhub}
         # A shared store (Postgres on the VM, or Cosmos before it) is written by the ingest job and read by every
         # process; SQLite is local to this one (tests, offline runs).
         self.store_kind = "postgres" if config.pg_host else "cosmos" if config.cosmos_endpoint else "sqlite"
@@ -120,6 +121,10 @@ class Services:
 
             self.memory = MemoryRetriever(self.store, self.collections, list(config.memory_collections),
                                           config.memory_snapshot)
+        # Cooking and Wirecutter: askhub in this process (hosted.py), when its vectors' VM address is set.
+        self.hosted: Hosted | None = None
+        if config.askhub_vector_url:
+            self.hosted = Hosted([v.askhub for v in VERTICALS.values() if v.askhub], config.data_dir / "askhub")
         self.index: Index = Index([], np.zeros((0, 1), dtype=np.float32))
         self.ready_at: datetime | None = None
         self.last_refresh: dict = {}
@@ -158,6 +163,8 @@ class Services:
         return self.store if self.shared else self.index  # type: ignore[return-value]
 
     async def setup(self) -> None:
+        if self.hosted:
+            self.hosted.start()
         await self.store.setup()
         if self.memory:
             await self.memory.load()
@@ -270,6 +277,8 @@ class Services:
                 await self._task
         if self.remote:
             await self.remote.aclose()
+        if self.hosted:
+            await self.hosted.aclose()
         for ranker in self._rankers.values():
             if hasattr(ranker, "aclose"):
                 await ranker.aclose()
@@ -421,8 +430,8 @@ def create_app(services: Services) -> Starlette:
         if model not in RANKING_CHOICES:
             return JSONResponse({"error": f"ranking_model must be one of: {', '.join(m for m in RANKING_CHOICES if m)}"},
                                 status_code=400)
-        ranker = None if vertical.nlweb_url else services.ranker_for(model)  # an NLWeb backend ranks for itself
-        if ranker is None and not vertical.nlweb_url:
+        ranker = None if vertical.askhub else services.ranker_for(model)  # an NLWeb backend ranks for itself
+        if ranker is None and not vertical.askhub:
             return JSONResponse({"error": "only the default ranking model is available here"}, status_code=400)
         ledger = UsageLedger()
         usage.CURRENT.set(ledger)
@@ -437,10 +446,10 @@ def create_app(services: Services) -> Starlette:
         key = ("api", standalone, vertical.id, want_summary, model)
         cached = services._feeds.get(key)
         hit = bool(cached and time.monotonic() - cached[0] < services.feed_ttl)
-        if not hit and not vertical.nlweb_url and services.ready_at is None:
+        if not hit and not vertical.askhub and services.ready_at is None:
             return JSONResponse({"error": "index not built yet"}, status_code=503)
         base = str(request.base_url).rstrip("/")
-        feed = None if vertical.nlweb_url else f"{base}/feed.xml?" + urlencode({"q": standalone, "vertical": vertical.id})
+        feed = None if vertical.askhub else f"{base}/feed.xml?" + urlencode({"q": standalone, "vertical": vertical.id})
 
         def results(rows: list[dict], partial: bool = False) -> dict:
             line = {"type": "results", "results": rows, "feed": feed, "notices": notices, "cached": hit}
@@ -453,12 +462,15 @@ def create_app(services: Services) -> Starlette:
             if hit:
                 entry = cached[1]
                 summary_error = ""
-            elif vertical.nlweb_url:
+            elif vertical.askhub:
                 mode = "summarize" if want_summary else "list"
                 answer = None
                 for _ in range(2):  # these backends now and then answer "no results" to a query they answer the next time
-                    async for kind, value in nlweb.stream(vertical.nlweb_url, vertical.nlweb_site, standalone,
-                                                          SEARCH_LIMIT, mode=mode, ranking_model=model):
+                    if services.hosted is None:
+                        raise nlweb.NLWebError(f"{vertical.label} is not configured (QDRSS_ASKHUB_VECTOR_URL)")
+                    events = services.hosted.events(vertical.askhub, nlweb.payload(
+                        vertical.nlweb_site, standalone, SEARCH_LIMIT, mode, model))
+                    async for kind, value in nlweb.parse(events, SEARCH_LIMIT, model):
                         if kind == "rows":
                             yield results(value, partial=True)
                         else:
@@ -500,7 +512,7 @@ def create_app(services: Services) -> Starlette:
             yield results(entry["results"])
             if want_summary and entry["results"]:
                 error = summary_error
-                if not entry["summary"] and not error and not vertical.nlweb_url:
+                if not entry["summary"] and not error and not vertical.askhub:
                     if services.writer is None:
                         error = "no summary model is configured"
                     else:
@@ -554,7 +566,7 @@ def create_app(services: Services) -> Starlette:
 
     async def verticals(_: Request) -> Response:
         return JSONResponse([{"id": v.id, "label": v.label, "examples": list(v.examples),
-                              "feed": not v.nlweb_url} for v in VERTICALS.values()])
+                              "feed": not v.askhub} for v in VERTICALS.values()])
 
     async def home(_: Request) -> Response:
         return FileResponse(STATIC / "index.html", headers=NO_CACHE)
@@ -597,6 +609,7 @@ def create_app(services: Services) -> Starlette:
                 "ranking_providers": getattr(services.ranker, "health", None) and services.ranker.health.report() or {},
                 "in_memory": services.memory.status if services.memory else {},
                 "vector_service": services.remote.status if services.remote else None,
+                "askhub": services.hosted.status() if services.hosted else None,
                 "items": await services.store.count(),
                 "index_built_at": services.ready_at.isoformat() if services.ready_at else None,
                 "last_refresh": services.last_refresh,

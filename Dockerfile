@@ -4,7 +4,7 @@ COPY requirements.txt pyproject.toml README.md LICENSE ./
 COPY src ./src
 COPY scripts ./scripts
 RUN pip install --no-cache-dir -r requirements.txt
-COPY sources.yaml podcasts.yaml ./
+COPY sources.yaml podcasts.yaml askhub-sources.yaml ./
 # Keys (OPENROUTER_API_KEY, COSMOS_KEY) come from the host's secrets; nothing secret is in
 # the image. The web app serves from the source tree (static files sit beside app.py).
 # `qdrss-ingest` runs the same image as a job, as does a one-off backfill (scripts/).

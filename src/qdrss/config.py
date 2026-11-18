@@ -37,6 +37,7 @@ class Config:
     pg_password: str = ""
     vector_url: str = ""  # the VM's vector service (vectors.py); "" searches here
     vector_token: str = ""
+    askhub_vector_url: str = ""  # the VM's askhub vector service; set, Cooking and Wirecutter run here (hosted.py)
 
     @property
     def db_path(self) -> Path:
@@ -77,4 +78,5 @@ def load_config() -> Config:
         pg_password=env.get("QDRSS_PG_PASSWORD", ""),
         vector_url=env.get("QDRSS_VECTOR_URL", ""),
         vector_token=env.get("QDRSS_VECTOR_TOKEN", ""),
+        askhub_vector_url=env.get("QDRSS_ASKHUB_VECTOR_URL", ""),
     )

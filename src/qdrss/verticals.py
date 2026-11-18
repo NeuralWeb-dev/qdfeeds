@@ -9,8 +9,8 @@ the manifest: a glob over source names (`nytnews_athletic_*`) or an exact name. 
 archive-only names a selector uses are in ARCHIVE_SOURCES. A source scope also names its
 sources' collections, so a store partitioned by collection queries only those partitions.
 
-Cooking and Wirecutter are NLWeb sites (nlweb-samples on Cloud Run): their recipes and
-reviews are not RSS, so the page asks those backends directly through /api/search.
+Cooking and Wirecutter are NLWeb sites: their recipes and reviews are not RSS, so askhub (the
+NLWeb pipeline, src/askhub) answers them in this process (hosted.py).
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ class Vertical:
     label: str
     selectors: tuple[str, ...] = ()
     collections: tuple[str, ...] = ()  # instead of selectors: every item of these collections
-    nlweb_url: str = ""  # an NLWeb /ask endpoint instead of qdrss sources
+    askhub: str = ""  # an askhub collection (hosted.py) instead of qdrss sources
     nlweb_site: str = ""
     examples: tuple[str, ...] = ()
 
@@ -185,7 +185,7 @@ VERTICALS: tuple[Vertical, ...] = (
                  "Podcast episodes that explain how the Nvidia scandal unfolded, who the key players were and what it means for the A.I. race with China",
                  "Conversations about what the midterm election results reveal about American voters heading into the 2028 presidential race",
              )),
-    Vertical("cooking", "Cooking", nlweb_url="https://nlweb-recipes-3zepccvmbq-uc.a.run.app/ask",
+    Vertical("cooking", "Cooking", askhub="recipes",
              nlweb_site="nytimes",
              examples=(
                  "A vegetarian Thanksgiving main that will impress my meat-eating relatives and can be made the day before",
@@ -201,7 +201,7 @@ VERTICALS: tuple[Vertical, ...] = (
                  "A Thanksgiving menu for 12 that includes a vegan and a gluten-free guest, with dishes I can make two days ahead and only one oven",
                  "A dairy-free, nut-free dinner a picky eight-year-old and adults will both enjoy, ready in under 40 minutes on a weeknight",
              )),
-    Vertical("wirecutter", "Wirecutter", nlweb_url="https://nlweb-reviews-3zepccvmbq-uc.a.run.app/ask",
+    Vertical("wirecutter", "Wirecutter", askhub="reviews",
              nlweb_site="wirecutter",
              examples=(
                  "A robot vacuum that handles dog hair and thick rugs without getting stuck on cords",
