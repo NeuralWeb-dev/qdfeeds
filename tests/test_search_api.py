@@ -184,3 +184,10 @@ def test_a_recipe_without_a_description_gets_one_from_its_own_fields():
     assert row["summary"].startswith("Italian dinner by Molly O'Neill.")
     assert nlweb.recipe_line({"@type": "Recipe", "totalTime": "PT45M"}) == "45 min."
     assert nlweb.recipe_line({"@type": "Product", "name": "x"}) == ""
+
+
+def test_every_decision_model_is_offered_and_shows_the_items_own_description():
+    from qdrss.app import RANKING_CHOICES
+
+    assert {"typesafe/jev-1.14", "google/gemini-decision-1"} <= nlweb.DECISION_MODELS
+    assert nlweb.DECISION_MODELS <= RANKING_CHOICES.keys()

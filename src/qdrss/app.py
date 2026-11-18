@@ -58,6 +58,7 @@ DECISION_MODELS = nlweb.DECISION_MODELS
 RANKING_CHOICES = {
     "": "Auto",
     "typesafe/jev-1.14": "Jev 1.14",  # a decision model: scores only, so results show the item's description
+    "google/gemini-decision-1": "Gemini Decision 1",  # likewise
     "openai/gpt-oss-20b": "GPT-OSS 20B",
     "openai/gpt-oss-120b": "GPT-OSS 120B",
     "google/gemma-4-26b-a4b-it": "Gemma 4 26B",

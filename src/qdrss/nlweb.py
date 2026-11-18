@@ -18,7 +18,7 @@ import httpx
 
 TIMEOUT = httpx.Timeout(90.0, connect=10.0)
 # Ranking models that only score (decisions.py); results they rank carry nothing written about them.
-DECISION_MODELS = frozenset({"typesafe/jev-1.14"})
+DECISION_MODELS = frozenset({"typesafe/jev-1.14", "google/gemini-decision-1"})
 
 
 class NLWebError(RuntimeError):
