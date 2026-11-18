@@ -9,6 +9,7 @@ import os
 import re
 import sys
 import time
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlencode
@@ -34,7 +35,7 @@ from .activity import Activity, iso
 from .config import Config, load_config
 from .converse import rewrite, summarize
 from .decisions import DecisionRanker
-from .feed import FeedRequest, Retriever, evaluate, render_rss
+from .feed import FeedRequest, Retriever, evaluate, evaluate_stream, render_rss
 from .feeds import parse_date
 from .index import Index, build_index
 from .ingest import load_sources, refresh, select_sources
@@ -393,10 +394,13 @@ def create_app(services: Services) -> Starlette:
 
         A turn is a question in one tab, with the conversation's earlier queries (each already standing
         alone) and the last turn's result titles, so a follow-up is rewritten to stand alone before it is
-        searched. Results come first: the archive and live feeds, newest first among the matches with a
-        preference for recent items, or an NLWeb backend for Cooking and Wirecutter. The summary follows,
-        then what this turn's model calls cost, by model and step. Lines: {"type": "query" | "results" |
-        "summary" | "summary_error" | "usage", ...}. A failed search is an HTTP error, never an empty list."""
+        searched. Results come first, each as soon as it is found (time to the first result matters most):
+        the archive and live feeds, newest first among the matches with a preference for recent items, or
+        an NLWeb backend for Cooking and Wirecutter. The summary follows, then what this turn's model calls
+        cost, by model and step. Lines: {"type": "query" | "results" | "summary" | "summary_error" |
+        "error" | "usage", ...}; a "results" line with "partial": true is the list so far (it replaces the
+        last), and a row with "pending": true is kept but not yet described. A search that fails before
+        its first result is an HTTP error, never an empty list; one that fails after it ends in "error"."""
         if request.method == "POST":
             try:
                 body = await request.json()
@@ -433,67 +437,69 @@ def create_app(services: Services) -> Starlette:
         key = ("api", standalone, vertical.id, want_summary, model)
         cached = services._feeds.get(key)
         hit = bool(cached and time.monotonic() - cached[0] < services.feed_ttl)
-        entry: dict = cached[1] if hit else {}
-        summary_error = ""  # this turn's only: a failed summary is reported, never cached
+        if not hit and not vertical.nlweb_url and services.ready_at is None:
+            return JSONResponse({"error": "index not built yet"}, status_code=503)
         base = str(request.base_url).rstrip("/")
-        if hit:
-            pass
-        elif vertical.nlweb_url:
-            mode = "summarize" if want_summary else "list"
-            try:
-                answer = await nlweb.ask(vertical.nlweb_url, vertical.nlweb_site, standalone, SEARCH_LIMIT, mode=mode,
-                                         ranking_model=model)
-                ledger.merge(answer.usage, vertical.label)
-                if not answer.rows:  # these backends now and then answer "no results" to a query they answer the next time
-                    answer = await nlweb.ask(vertical.nlweb_url, vertical.nlweb_site, standalone, SEARCH_LIMIT, mode=mode,
-                                             ranking_model=model)
-                    ledger.merge(answer.usage, vertical.label)
-            except nlweb.NLWebError as exc:
-                logger.error("nlweb %s: %s", vertical.id, exc)
-                return JSONResponse({"error": f"{vertical.label} search is unavailable"}, status_code=503)
-            entry = {"results": answer.rows, "feed": None, "summary": answer.summary}
-            if want_summary and answer.rows and not answer.summary:
-                summary_error = next((n for n in answer.notices if "unavailable" in n.lower()),
-                                     f"{vertical.label} sent no summary")
-        else:
-            if services.ready_at is None:
-                return JSONResponse({"error": "index not built yet"}, status_code=503)
-            scope = services.verticals[vertical.id]
-            feed_request = FeedRequest(standalone, SEARCH_SINCE, SEARCH_LIMIT, "relevant", None, SEARCH_FRESH,
-                                       scope.sources, scope.collections, vertical.id)
-            try:
-                matches = await evaluate(
-                    feed_request, services.retriever, services.embedder, ranker,
-                    candidate_count=services.config.candidate_count, max_candidates=services.config.max_candidates, batch_size=services.config.batch_size,
-                    window_days=services.config.window_days,
-                )
-            except RankingError as exc:
-                logger.error("ranking failed: %s", exc)
-                return JSONResponse({"error": "ranking unavailable"}, status_code=503)
-            except VectorServiceError:
-                return JSONResponse({"error": "vector search unavailable"}, status_code=503)
-            rows = [{
-                "title": m.item.title or m.item.url, "url": m.item.url, "summary": m.item.content[:400],
-                "why": m.why, "image": None,
-                "date": (m.item.published_at or m.item.ingested_at).isoformat(),
-                "source": m.item.source_title or m.item.source,
-            } for m in matches]
-            # The feed a reader (or an email digest) follows: new matches as they are published. Feeds always
-            # rank with the default model.
-            entry = {"results": rows, "feed": f"{base}/feed.xml?" + urlencode({"q": standalone, "vertical": vertical.id}),
-                     "summary": None}
-        if not hit and not summary_error:
-            if len(services._feeds) > 5000:
-                services._feeds.pop(next(iter(services._feeds)))
-            services._feeds[key] = (time.monotonic(), entry, "")
+        feed = None if vertical.nlweb_url else f"{base}/feed.xml?" + urlencode({"q": standalone, "vertical": vertical.id})
 
-        async def lines():
-            usage.CURRENT.set(ledger)
-            error = summary_error
-            yield _line({"type": "query", "value": standalone, "rewritten": standalone != q})
-            yield _line({"type": "results", "results": entry["results"], "feed": entry["feed"],
-                         "notices": notices, "cached": hit})
+        def results(rows: list[dict], partial: bool = False) -> dict:
+            line = {"type": "results", "results": rows, "feed": feed, "notices": notices, "cached": hit}
+            return {**line, "partial": True} if partial else line
+
+        async def found() -> AsyncIterator[dict]:
+            """The results as they come, each a "results" line marked partial (the list so far, which replaces
+            the last); then the full list, unmarked, and the summary. Raises before the first line on a failed
+            search, so the turn is an HTTP error and never an empty list."""
+            if hit:
+                entry = cached[1]
+                summary_error = ""
+            elif vertical.nlweb_url:
+                mode = "summarize" if want_summary else "list"
+                answer = None
+                for _ in range(2):  # these backends now and then answer "no results" to a query they answer the next time
+                    async for kind, value in nlweb.stream(vertical.nlweb_url, vertical.nlweb_site, standalone,
+                                                          SEARCH_LIMIT, mode=mode, ranking_model=model):
+                        if kind == "rows":
+                            yield results(value, partial=True)
+                        else:
+                            answer = value
+                    ledger.merge(answer.usage, vertical.label)
+                    if answer.rows:
+                        break
+                entry = {"results": answer.rows, "feed": None, "summary": answer.summary}
+                summary_error = ""
+                if want_summary and answer.rows and not answer.summary:
+                    summary_error = next((n for n in answer.notices if "unavailable" in n.lower()),
+                                         f"{vertical.label} sent no summary")
+            else:
+                scope = services.verticals[vertical.id]
+                feed_request = FeedRequest(standalone, SEARCH_SINCE, SEARCH_LIMIT, "relevant", None, SEARCH_FRESH,
+                                           scope.sources, scope.collections, vertical.id)
+                rows: list[dict] = []
+                async for matches in evaluate_stream(
+                    feed_request, services.retriever, services.embedder, ranker,
+                    candidate_count=services.config.candidate_count, max_candidates=services.config.max_candidates,
+                    batch_size=services.config.batch_size, window_days=services.config.window_days,
+                ):
+                    rows = [{
+                        "title": m.item.title or m.item.url, "url": m.item.url, "summary": m.item.content[:400],
+                        "why": m.why, "image": None,
+                        "date": (m.item.published_at or m.item.ingested_at).isoformat(),
+                        "source": m.item.source_title or m.item.source,
+                    } for m in matches]
+                    if rows:
+                        yield results(rows, partial=True)
+                # The feed a reader (or an email digest) follows: new matches as they are published. Feeds always
+                # rank with the default model.
+                entry = {"results": rows, "feed": feed, "summary": None}
+                summary_error = ""
+            if not hit and not summary_error:
+                if len(services._feeds) > 5000:
+                    services._feeds.pop(next(iter(services._feeds)))
+                services._feeds[key] = (time.monotonic(), entry, "")
+            yield results(entry["results"])
             if want_summary and entry["results"]:
+                error = summary_error
                 if not entry["summary"] and not error and not vertical.nlweb_url:
                     if services.writer is None:
                         error = "no summary model is configured"
@@ -505,9 +511,36 @@ def create_app(services: Services) -> Starlette:
                             logger.warning("summary failed: %s: %s", type(exc).__name__, str(exc)[:120])
                             error = "the summary model failed"
                 if entry["summary"]:
-                    yield _line({"type": "summary", "value": entry["summary"]})
+                    yield {"type": "summary", "value": entry["summary"]}
                 elif error:
-                    yield _line({"type": "summary_error", "message": error})
+                    yield {"type": "summary_error", "message": error}
+
+        def failure(exc: Exception) -> tuple[str, int]:
+            if isinstance(exc, RankingError):
+                logger.error("ranking failed: %s", exc)
+                return "ranking unavailable", 503
+            if isinstance(exc, VectorServiceError):
+                return "vector search unavailable", 503
+            logger.error("nlweb %s: %s", vertical.id, exc)
+            return f"{vertical.label} search is unavailable", 503
+
+        events = found()
+        try:
+            first = await anext(events)  # the first result (or the whole answer), before the 200 is sent
+        except (RankingError, VectorServiceError, nlweb.NLWebError) as exc:
+            message, status = failure(exc)
+            return JSONResponse({"error": message}, status_code=status)
+
+        async def lines():
+            usage.CURRENT.set(ledger)
+            yield _line({"type": "query", "value": standalone, "rewritten": standalone != q})
+            yield _line(first)
+            try:
+                async for event in events:
+                    yield _line(event)
+            except (RankingError, VectorServiceError, nlweb.NLWebError) as exc:  # after results were shown
+                yield _line({"type": "error", "message": failure(exc)[0]})
+                return
             yield _line({"type": "usage", "cached": hit, **ledger.wire()})
 
         return StreamingResponse(lines(), media_type="application/x-ndjson", headers=NO_CACHE)

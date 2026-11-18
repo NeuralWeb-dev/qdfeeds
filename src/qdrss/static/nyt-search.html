@@ -67,6 +67,7 @@
   .status { color: var(--muted); font-size: 14px; margin-top: 10px; }
   .answer { margin-top: 12px; padding: 12px 14px; background: var(--panel); border-radius: 10px; font-size: 15px; }
   .answer.pending { color: var(--muted); }
+  ol li.pending { opacity: .6; }  /* kept by the ranker, not yet described */
   ol { list-style: none; padding: 0; margin: 6px 0 0; }
   li { display: flex; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
   li:first-child { border-top: 0; }
@@ -381,7 +382,8 @@ function drawTurn(t) {
       box.textContent = text; box.classList.toggle('pending', !!pending);
     },
     noAnswer: () => node.querySelector('.answer')?.remove(),
-    results: rows => { for (const r of rows) { const li = card(r); if (li) list.append(li); } },
+    // Each results line is the whole list so far, so it replaces what is shown.
+    results: rows => { list.replaceChildren(); for (const r of rows) { const li = card(r); if (li) { li.classList.toggle('pending', !!r.pending); list.append(li); } } },
     bar: () => {
       const acts = el('div', { className: 'acts' });
       if (t.usage) { const c = el('button', { type: 'button', className: 'ghost', textContent: 'Cost details' }); c.addEventListener('click', () => showCost(t)); acts.append(c); }
@@ -453,6 +455,11 @@ async function ask(question) {
     let buf = '';
     const handle = e => {
       if (e.type === 'query') { t.interpretedAs = e.value; view.interpreted(e.value); writeUrl(e.value); }
+      else if (e.type === 'results' && e.partial) {  // the results so far: shown at once, more to come
+        view.results(e.results);
+        view.status(`Finding more in ${v.label}…`);
+      }
+      else if (e.type === 'error') throw new Error(e.message);
       else if (e.type === 'results') {
         t.results = e.results; t.feed = e.feed; t.notices = e.notices || [];
         t.notices.forEach(view.notice);

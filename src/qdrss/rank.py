@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import AsyncIterator
 from typing import Any
 
 from .models import Candidate, Match
@@ -55,6 +56,29 @@ async def classify(
             raise RankingError(f"{type(result).__name__}: {result}") from result
         matches.extend(result)
     return matches
+
+
+async def classify_stream(
+    query: str, candidates: list[Candidate], ranker: Ranker, batch_size: int = 10
+) -> AsyncIterator[list[Match]]:
+    """The matches of each batch as soon as that batch is judged (batches run at once, so the slowest one
+    no longer holds back the rest). A decision model judges the whole page in one call: one yield."""
+    if not candidates:
+        return
+    if getattr(ranker, "decide", None) is not None:
+        yield await classify(query, candidates, ranker, batch_size)
+        return
+    tasks = [asyncio.ensure_future(_classify_batch(query, candidates[i : i + batch_size], ranker))
+             for i in range(0, len(candidates), batch_size)]
+    try:
+        for done in asyncio.as_completed(tasks):
+            try:
+                yield await done
+            except Exception as exc:  # any failed batch is a failed ranking, as in classify
+                raise RankingError(f"{type(exc).__name__}: {exc}") from exc
+    finally:
+        for task in tasks:
+            task.cancel()
 
 
 async def _classify_batch(query: str, batch: list[Candidate], ranker: Ranker) -> list[Match]:

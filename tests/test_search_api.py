@@ -1,7 +1,9 @@
 """The NYT search page's turn endpoint: follow-ups, summaries and what each turn cost."""
 
+import dataclasses
 import json
 
+import httpx
 from starlette.testclient import TestClient
 
 from qdrss import nlweb, usage
@@ -45,11 +47,16 @@ async def _services(tmp_path, writer) -> Services:
     return services
 
 
-def turn(client, **body):
+def lines(client, **body):
     r = client.post("/api/search", json={"vertical": "all", **body})
     assert r.status_code == 200, r.text
     assert r.headers["content-type"].startswith("application/x-ndjson")
-    return {e["type"]: e for e in map(json.loads, r.text.splitlines())}
+    return list(map(json.loads, r.text.splitlines()))
+
+
+def turn(client, **body):
+    """The turn's lines by type; for "results", the last (final) list."""
+    return {e["type"]: e for e in lines(client, **body)}
 
 
 async def test_a_follow_up_is_rewritten_searched_summarized_and_costed(tmp_path):
@@ -120,9 +127,13 @@ async def test_no_summary_when_not_asked(tmp_path):
 async def test_a_cooking_turn_carries_the_backends_summary_and_cost(tmp_path, monkeypatch):
     seen = {}
 
-    async def ask(url, site, query, limit, client=None, mode="list", ranking_model=""):
+    lasagna = {"title": "Lasagna", "url": "https://cooking.test/1", "summary": "", "why": "", "image": None,
+               "date": None, "source": "Recipe"}
+
+    async def stream(url, site, query, limit, client=None, mode="list", ranking_model=""):
         seen.update(query=query, mode=mode, model=ranking_model)
-        return nlweb.Answer(
+        yield "rows", [{**lasagna, "pending": True}]
+        yield "answer", nlweb.Answer(
             [{"title": "Lasagna", "url": "https://cooking.test/1", "summary": "", "why": "", "image": None,
               "date": None, "source": "Recipe"}],
             summary="Make the lasagna.",
@@ -130,13 +141,14 @@ async def test_a_cooking_turn_carries_the_backends_summary_and_cost(tmp_path, mo
                                "phases": {"ranking": 3}}]},
         )
 
-    monkeypatch.setattr(nlweb, "ask", ask)
+    monkeypatch.setattr(nlweb, "stream", stream)
     services = await _services(tmp_path, Writer(standalone="vegetarian lasagna"))
     with TestClient(create_app(services)) as client:
         t = turn(client, vertical="cooking", q="make it vegetarian", previous_queries=["lasagna"],
                  ranking_model="google/gemma-4-31b-it")
         assert seen == {"query": "vegetarian lasagna", "mode": "summarize", "model": "google/gemma-4-31b-it"}
         assert t["summary"]["value"] == "Make the lasagna." and t["results"]["feed"] is None
+        assert "pending" not in t["results"]["results"][0] and "partial" not in t["results"]
         phases = {row["model"]: row["phases"] for row in t["usage"]["models"]}
         assert phases == {"openai/gpt-oss-20b": {"Cooking ranking": 3}, "test/writer": {"rewrite": 1}}
 
@@ -191,3 +203,36 @@ def test_every_decision_model_is_offered_and_shows_the_items_own_description():
 
     assert {"typesafe/jev-1.14", "google/gemini-decision-1"} <= nlweb.DECISION_MODELS
     assert nlweb.DECISION_MODELS <= RANKING_CHOICES.keys()
+
+
+async def test_results_stream_before_the_full_list_and_the_summary(tmp_path):
+    services = await _services(tmp_path, Writer())
+    services.config = dataclasses.replace(services.config, batch_size=1)  # one candidate per ranking call, so
+    # each match is a line of its own
+    with TestClient(create_app(services)) as client:
+        seen = lines(client, q="rust")
+    kinds = [e["type"] + ("+" if e.get("partial") else "") for e in seen]
+    assert kinds == ["query", "results+", "results+", "results", "summary", "usage"]
+    assert [len(e["results"]) for e in seen if e["type"] == "results"] == [1, 2, 2]
+
+
+async def test_a_cooking_turn_shows_kept_candidates_then_the_described_results(monkeypatch):
+    def sse(kind, content):
+        return f"data: {json.dumps({'message_type': kind, 'content': content})}\n\n"
+
+    def recipe(n, description=""):
+        return {"name": f"R{n}", "url": f"https://c.test/{n}", "relevance": "strong", "description": description,
+                "schema_object": {"@type": "Recipe", "description": f"own {n}"}}
+
+    body = (sse("candidate", [recipe(1)]) + sse("candidate", [{**recipe(2), "relevance": "irrelevant"}])
+            + sse("candidate", [recipe(3)]) + sse("result", [recipe(3, "described 3")]) + sse("complete", None))
+    client = httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, text=body)))
+    got = [value async for kind, value in nlweb.stream("https://nlweb.test/ask", "s", "q", 10, client) if kind == "rows"]
+    assert [[(r["title"], r["summary"], r.get("pending", False)) for r in rows] for rows in got] == [
+        [("R1", "own 1", True)],
+        [("R1", "own 1", True)],
+        [("R1", "own 1", True), ("R3", "own 3", True)],
+        [("R3", "described 3", False), ("R1", "own 1", True)],
+    ]
+    answer = await nlweb.ask("https://nlweb.test/ask", "s", "q", 10, client)
+    assert [r["title"] for r in answer.rows] == ["R3"]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import xml.etree.ElementTree as ET
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from email.utils import format_datetime
@@ -14,7 +15,7 @@ import numpy as np
 
 from .models import Candidate, Match
 from .providers import Embeddings, Ranker
-from .rank import classify
+from .rank import classify_stream
 
 
 class Retriever(Protocol):
@@ -55,7 +56,7 @@ class FeedRequest:
     vertical: str = ""  # the vertical the sources came from, for the feed's own link
 
 
-async def evaluate(
+async def evaluate_stream(
     request: FeedRequest,
     retriever: Retriever,
     embedder: Embeddings,
@@ -66,9 +67,10 @@ async def evaluate(
     window_days: int,
     max_candidates: int | None = None,
     now: datetime | None = None,
-) -> list[Match]:
-    """The ranking model judges the closest `candidate_count` candidates; while fewer than `limit` of them
-    qualify it judges the next `candidate_count`, up to `max_candidates` in all. A fixed cut would drop
+) -> AsyncIterator[list[Match]]:
+    """The matches so far (newest first, at most `limit`) each time a batch adds to them, so a page can show
+    the first while the rest are judged. The ranking model judges the closest `candidate_count` candidates;
+    while fewer than `limit` of them qualify it judges the next `candidate_count`, up to `max_candidates` in all. A fixed cut would drop
     the item that answers the question whenever a bigger story fills the closest places: one vector per
     article captures what it is mostly about, so a question naming a second person ("Bessent's role in
     the Huang case") sits nearer to fifty articles about the first than to the one about both."""
@@ -87,17 +89,48 @@ async def evaluate(
         candidates = by_blend(candidates, request.fresh, now)
     candidates = candidates[:ceiling]
     matches: list[Match] = []
+    yielded = False
     for start in range(0, len(candidates), candidate_count):
-        judged = await classify(request.q, candidates[start : start + candidate_count], ranker, batch_size)
-        matches += [m for m in judged if request.threshold != "strong" or m.category == "strong"]
+        async for judged in classify_stream(request.q, candidates[start : start + candidate_count], ranker,
+                                            batch_size):
+            kept = [m for m in judged if request.threshold != "strong" or m.category == "strong"]
+            if kept:  # a batch that kept nothing changes nothing to show
+                matches += kept
+                yield newest_first(matches)[: request.limit]
+                yielded = True
         if len(matches) >= request.limit:
             break
+    if not yielded:
+        yield []
+
+
+def newest_first(matches: list[Match]) -> list[Match]:
     # Newest first by publication time, the date each item shows as its pubDate;
     # ingestion time stands in for an item without one, and the id breaks ties so
     # equal timestamps order the same way on every fetch. (Ordering by ingestion
     # time put items out of date order whenever a source was ingested in batches.)
-    matches.sort(key=lambda m: (-published(m.item).timestamp(), m.item.id))
-    return matches[: request.limit]
+    return sorted(matches, key=lambda m: (-published(m.item).timestamp(), m.item.id))
+
+
+async def evaluate(
+    request: FeedRequest,
+    retriever: Retriever,
+    embedder: Embeddings,
+    ranker: Ranker,
+    *,
+    candidate_count: int,
+    batch_size: int,
+    window_days: int,
+    max_candidates: int | None = None,
+    now: datetime | None = None,
+) -> list[Match]:
+    """The matches, once every batch is judged (evaluate_stream's last list)."""
+    matches: list[Match] = []
+    async for matches in evaluate_stream(request, retriever, embedder, ranker, candidate_count=candidate_count,
+                                         batch_size=batch_size, window_days=window_days,
+                                         max_candidates=max_candidates, now=now):
+        pass
+    return matches
 
 
 def one_per_url(candidates: list[Candidate]) -> list[Candidate]:
