@@ -1,9 +1,10 @@
 """Ask an NLWeb backend (/ask, server-sent events) and return its results as plain dicts.
 
 Used for the verticals whose content is not RSS (NYT Cooking recipes, Wirecutter
-reviews). An NLWeb answer streams `candidate` events as retrieval finds items and
-`result` events once its ranker has judged them; the ranked results are what we want,
-and the candidates stand in when a backend sends no `result` before it ends. In
+reviews). An NLWeb answer streams `candidate` events as its ranker judges items, then
+`result` events as its describer writes about the kept ones; the described results are
+what we want, the kept candidates show (as pending) until then, and stand in when a
+backend sends no `result` before it ends. In
 summarize mode an `nlws` event carries the summary, and a `usage` event what the
 backend's own model calls cost.
 """
@@ -12,6 +13,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 
 import httpx
@@ -101,14 +103,19 @@ class Answer:
     notices: list[str] = field(default_factory=list)
 
 
-async def ask(url: str, site: str, query: str, limit: int, client: httpx.AsyncClient | None = None,
-              mode: str = "list", ranking_model: str = "") -> Answer:
+async def stream(url: str, site: str, query: str, limit: int, client: httpx.AsyncClient | None = None,
+                 mode: str = "list", ranking_model: str = "") -> AsyncIterator[tuple[str, object]]:
+    """The backend's answer as it comes: ("rows", the list so far) each time it grows, then ("answer", the
+    Answer). The backend first sends the candidates its ranker kept, one by one, then the described results
+    in rank order, then the summary. Until a result is described, a kept candidate shows as pending with the
+    record's own description (the ranker's unchecked words are not shown); a described result replaces it."""
     payload = {"query": query, "site": site, "mode": mode, "max_results": limit}
     if ranking_model:
         payload["ranking_model"] = ranking_model
     own = client is None
     client = client or httpx.AsyncClient(timeout=TIMEOUT)
     results: list[dict] = []
+    pending: list[dict] = []  # kept candidates, not yet described
     candidates: list[dict] = []
     answer = Answer([])
     try:
@@ -125,7 +132,12 @@ async def ask(url: str, site: str, query: str, limit: int, client: httpx.AsyncCl
                 kind = event.get("message_type")
                 content = event.get("content")
                 if kind in ("result", "candidate") and isinstance(content, list):
-                    (results if kind == "result" else candidates).extend(content)
+                    if kind == "result":
+                        results.extend(_rows(content, ranking_model in DECISION_MODELS))
+                    else:
+                        candidates.extend(content)
+                        pending.extend(_rows([c for c in content if c.get("relevance") in KEPT], True))
+                    yield "rows", _merged(results, [{**r, "pending": True} for r in pending], limit)
                 elif kind == "nlws" and isinstance(content, dict) and isinstance(content.get("answer"), str):
                     answer.summary = content["answer"].strip() or None
                 elif kind == "usage" and isinstance(content, dict):
@@ -139,12 +151,33 @@ async def ask(url: str, site: str, query: str, limit: int, client: httpx.AsyncCl
     finally:
         if own:
             await client.aclose()
+    own_description = ranking_model in DECISION_MODELS
+    answer.rows = _merged(results or _rows([c for c in candidates if c.get("relevance") in KEPT], own_description),
+                          [], limit)
+    yield "answer", answer
+
+
+async def ask(url: str, site: str, query: str, limit: int, client: httpx.AsyncClient | None = None,
+              mode: str = "list", ranking_model: str = "") -> Answer:
+    async for kind, value in stream(url, site, query, limit, client, mode, ranking_model):
+        if kind == "answer":
+            return value
+    raise AssertionError("unreachable")
+
+
+KEPT = ("strong", "relevant")
+
+
+def _rows(items: list[dict], own_description: bool) -> list[dict]:
+    return [row for row in (_row(item, own_description=own_description) for item in items) if row]
+
+
+def _merged(first: list[dict], then: list[dict], limit: int) -> list[dict]:
+    """The rows of `first`, then those of `then`, one per URL, at most `limit`."""
     seen: set[str] = set()
     out = []
-    for item in results or [c for c in candidates if c.get("relevance") in ("strong", "relevant")]:
-        row = _row(item, own_description=ranking_model in DECISION_MODELS)
-        if row and row["url"] not in seen:
+    for row in first + then:
+        if row["url"] not in seen:
             seen.add(row["url"])
             out.append(row)
-    answer.rows = out[:limit]
-    return answer
+    return out[:limit]
