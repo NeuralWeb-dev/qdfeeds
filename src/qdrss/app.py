@@ -30,7 +30,7 @@ from starlette.routing import Route
 # Pages change with each deploy; without this browsers reuse a stale copy.
 NO_CACHE = {"cache-control": "no-cache"}
 
-from . import nlweb, usage
+from . import nlweb, querylog, usage
 from .activity import Activity, iso
 from .config import Config, load_config
 from .converse import rewrite, summarize
@@ -325,10 +325,25 @@ def create_app(services: Services) -> Starlette:
             response = await _feed(request)
         except Exception as exc:
             services.activity.record(500, time.monotonic() - started, f"{type(exc).__name__}: {exc}")
+            log_feed(request, 500, started, None, type(exc).__name__)
             raise
+        body = bytes(response.body)
+        error = body.decode("utf-8", "replace") if response.status_code >= 400 else None
         services.activity.record(response.status_code, time.monotonic() - started,
-                                 bytes(response.body).decode("utf-8", "replace") if response.status_code >= 500 else None)
+                                 error if response.status_code >= 500 else None)
+        log_feed(request, response.status_code, started,
+                 body.count(b"<item>") if response.status_code == 200 else None, error)
         return response
+
+    def log_feed(request: Request, status: int, started: float, results: int | None, error: str | None) -> None:
+        params = request.query_params
+        querylog.emit({
+            "endpoint": "/feed.xml", "query": params.get("q", "").strip(),
+            "vertical": params.get("vertical") or None, "collection": params.get("collection") or None,
+            "since": bool(params.get("since")), "status": status, "error": error, "results": results,
+            "latency_ms": round((time.monotonic() - started) * 1000),
+            "user_agent": request.headers.get("user-agent", ""),
+        })
 
     async def _feed(request: Request) -> Response:
         params = request.query_params
@@ -410,29 +425,42 @@ def create_app(services: Services) -> Starlette:
         "error" | "usage", ...}; a "results" line with "partial": true is the list so far (it replaces the
         last), and a row with "pending": true is kept but not yet described. A search that fails before
         its first result is an HTTP error, never an empty list; one that fails after it ends in "error"."""
+        started = time.monotonic()
+        user_agent = request.headers.get("user-agent", "")
+        turn: dict = {"endpoint": "/api/search", "query": "", "user_agent": user_agent}
+
+        def log_turn(status, results: int | None = None, error: str | None = None, **more) -> None:
+            querylog.emit({**turn, "status": status, "error": error, "results": results,
+                           "latency_ms": round((time.monotonic() - started) * 1000), **more})
+
+        def refuse(content: dict, status_code: int) -> JSONResponse:
+            log_turn(status_code, error=content.get("error"))
+            return JSONResponse(content, status_code=status_code)
+
         if request.method == "POST":
             try:
                 body = await request.json()
             except ValueError:
-                return JSONResponse({"error": "the body must be JSON"}, status_code=400)
+                return refuse({"error": "the body must be JSON"}, 400)
             if not isinstance(body, dict):
-                return JSONResponse({"error": "the body must be a JSON object"}, status_code=400)
+                return refuse({"error": "the body must be a JSON object"}, 400)
         else:
             body = dict(request.query_params)
         q = str(body.get("q") or "").strip()[:300]
         vertical = VERTICALS.get(str(body.get("vertical") or "all"))
+        turn.update(query=q, vertical=str(body.get("vertical") or "all"))
         if not q or vertical is None:
-            return JSONResponse({"error": "q and a known vertical are required"}, status_code=400)
+            return refuse({"error": "q and a known vertical are required"}, 400)
         previous = [str(x).strip()[:300] for x in body.get("previous_queries") or [] if str(x).strip()][-5:]
         shown = [str(x).strip()[:200] for x in body.get("previous_results") or [] if str(x).strip()][:10]
         want_summary = body.get("summarize", True) not in (False, "0", "false")
         model = str(body.get("ranking_model") or "")
+        turn.update(turn=len(previous) + 1, ranking_model=model or None)
         if model not in RANKING_CHOICES:
-            return JSONResponse({"error": f"ranking_model must be one of: {', '.join(m for m in RANKING_CHOICES if m)}"},
-                                status_code=400)
+            return refuse({"error": f"ranking_model must be one of: {', '.join(m for m in RANKING_CHOICES if m)}"}, 400)
         ranker = None if vertical.askhub else services.ranker_for(model)  # an NLWeb backend ranks for itself
         if ranker is None and not vertical.askhub:
-            return JSONResponse({"error": "only the default ranking model is available here"}, status_code=400)
+            return refuse({"error": "only the default ranking model is available here"}, 400)
         ledger = UsageLedger()
         usage.CURRENT.set(ledger)
         notices: list[str] = []
@@ -446,8 +474,9 @@ def create_app(services: Services) -> Starlette:
         key = ("api", standalone, vertical.id, want_summary, model)
         cached = services._feeds.get(key)
         hit = bool(cached and time.monotonic() - cached[0] < services.feed_ttl)
+        turn.update(effective_query=standalone if standalone != q else None, cached=hit)
         if not hit and not vertical.askhub and services.ready_at is None:
-            return JSONResponse({"error": "index not built yet"}, status_code=503)
+            return refuse({"error": "index not built yet"}, 503)
         base = str(request.base_url).rstrip("/")
         feed = None if vertical.askhub else f"{base}/feed.xml?" + urlencode({"q": standalone, "vertical": vertical.id})
 
@@ -541,19 +570,37 @@ def create_app(services: Services) -> Starlette:
             first = await anext(events)  # the first result (or the whole answer), before the 200 is sent
         except (RankingError, VectorServiceError, nlweb.NLWebError) as exc:
             message, status = failure(exc)
-            return JSONResponse({"error": message}, status_code=status)
+            return refuse({"error": message}, status)
 
         async def lines():
             usage.CURRENT.set(ledger)
-            yield _line({"type": "query", "value": standalone, "rewritten": standalone != q})
-            yield _line(first)
+            results: int | None = None
+            status, error = "ok", None
             try:
-                async for event in events:
-                    yield _line(event)
-            except (RankingError, VectorServiceError, nlweb.NLWebError) as exc:  # after results were shown
-                yield _line({"type": "error", "message": failure(exc)[0]})
-                return
-            yield _line({"type": "usage", "cached": hit, **ledger.wire()})
+                yield _line({"type": "query", "value": standalone, "rewritten": standalone != q})
+                yield _line(first)
+                results = len(first.get("results") or [])
+                try:
+                    async for event in events:
+                        if event.get("type") == "results":
+                            results = len(event.get("results") or [])
+                        elif event.get("type") == "summary_error":
+                            error = event.get("message")
+                        yield _line(event)
+                except (RankingError, VectorServiceError, nlweb.NLWebError) as exc:  # after results were shown
+                    status, error = "error", failure(exc)[0]
+                    yield _line({"type": "error", "message": error})
+                    return
+                yield _line({"type": "usage", "cached": hit, **ledger.wire()})
+            except (asyncio.CancelledError, GeneratorExit):
+                status = "cancelled"  # the reader left before the turn finished
+                raise
+            except Exception as exc:
+                status, error = "error", type(exc).__name__
+                raise
+            finally:
+                spent = ledger.wire()
+                log_turn(status, results, error, cost_usd=spent["cost"], model_calls=spent["calls"])
 
         return StreamingResponse(lines(), media_type="application/x-ndjson", headers=NO_CACHE)
 
