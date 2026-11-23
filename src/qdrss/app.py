@@ -342,7 +342,7 @@ def create_app(services: Services) -> Starlette:
             "vertical": params.get("vertical") or None, "collection": params.get("collection") or None,
             "since": bool(params.get("since")), "status": status, "error": error, "results": results,
             "latency_ms": round((time.monotonic() - started) * 1000),
-            "user_agent": request.headers.get("user-agent", ""),
+            "user_agent": request.headers.get("user-agent", ""), "ip": querylog.caller_ip(request.scope),
         })
 
     async def _feed(request: Request) -> Response:
@@ -427,7 +427,8 @@ def create_app(services: Services) -> Starlette:
         its first result is an HTTP error, never an empty list; one that fails after it ends in "error"."""
         started = time.monotonic()
         user_agent = request.headers.get("user-agent", "")
-        turn: dict = {"endpoint": "/api/search", "query": "", "user_agent": user_agent}
+        turn: dict = {"endpoint": "/api/search", "query": "", "user_agent": user_agent,
+                      "ip": querylog.caller_ip(request.scope)}
 
         def log_turn(status, results: int | None = None, error: str | None = None, **more) -> None:
             querylog.emit({**turn, "status": status, "error": error, "results": results,
