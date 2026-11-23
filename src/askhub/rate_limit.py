@@ -171,20 +171,26 @@ def _is_paid_query(scope: dict[str, Any], body: bytes | None) -> bool:
     )
 
 
-def _client_key(scope: dict[str, Any], trusted_proxy_ips: frozenset[str]) -> str:
+def client_ip(scope: dict[str, Any], trusted_proxy_ips: frozenset[str] | tuple[str, ...]) -> str:
+    """The caller's address: the peer, or behind a trusted proxy the hop it appended. The rate
+    limiter's buckets and the query log both use this, so they always name the same client."""
     peer = scope.get("client")
     peer_ip = str(peer[0]) if peer else "unknown"
     # `*` trusts every peer: right only where the container is reachable solely
     # through a proxy, as on a Hugging Face Space, whose proxy address is not
     # fixed. Without it, every visitor shares the proxy's per-client bucket.
     if peer_ip not in trusted_proxy_ips and "*" not in trusted_proxy_ips:
-        return f"ip:{peer_ip}"
+        return peer_ip
     headers = {key.lower(): value for key, value in scope.get("headers", ())}
     forwarded = headers.get(b"x-forwarded-for", b"").decode("latin-1")
     # The last hop is the one our proxy appended; earlier hops are whatever the
     # client chose to send, and taking them would let it pick its own bucket.
     hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
-    return f"ip:{hops[-1] if hops else peer_ip}"
+    return hops[-1] if hops else peer_ip
+
+
+def _client_key(scope: dict[str, Any], trusted_proxy_ips: frozenset[str]) -> str:
+    return f"ip:{client_ip(scope, trusted_proxy_ips)}"
 
 
 async def _read_body(receive) -> bytes:

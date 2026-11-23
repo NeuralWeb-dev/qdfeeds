@@ -32,19 +32,21 @@ async def test_a_feed_fetch_logs_its_query_results_and_reader(tmp_path, capsys):
     with TestClient(create_app(services)) as client:
         since = (NOW - timedelta(days=7)).isoformat()
         assert client.get("/feed.xml", params={"q": "rust", "since": since},
-                          headers={"user-agent": "node"}).status_code == 200
+                          headers={"user-agent": "node", "x-forwarded-for": "6.6.6.6, 203.0.113.7"}).status_code == 200
         assert client.get("/feed.xml?q=rust&threshold=huge", headers={"user-agent": BROWSER}).status_code == 400
     fetched, refused = logged(capsys)
     assert fetched["endpoint"] == "/feed.xml" and fetched["query"] == "rust" and fetched["status"] == 200
     assert fetched["results"] == 1 and fetched["client"] == "program" and fetched["user_agent"] == "node"
     assert fetched["since"] is True and fetched["latency_ms"] >= 0
     assert refused["status"] == 400 and refused["client"] == "browser" and "threshold" in refused["error"]
+    # the hop Cloud Run's front end appended, not one the caller wrote in front of it
+    assert fetched["ip"] == "203.0.113.7" and refused["ip"] == "testclient"
 
 
 async def test_a_search_turn_logs_the_question_its_rewrite_and_spend(tmp_path, capsys):
     services = await _services(tmp_path, Writer(standalone="rust release notes"))
     with TestClient(create_app(services)) as client:
-        r = client.post("/api/search", headers={"user-agent": BROWSER},
+        r = client.post("/api/search", headers={"user-agent": BROWSER, "x-forwarded-for": "198.51.100.4"},
                         json={"vertical": "all", "q": "just the release", "previous_queries": ["rust"]})
         assert r.status_code == 200
         assert client.post("/api/search", json={"vertical": "nope", "q": "x"}).status_code == 400
@@ -54,13 +56,14 @@ async def test_a_search_turn_logs_the_question_its_rewrite_and_spend(tmp_path, c
     assert turn["turn"] == 2 and turn["status"] == "ok" and turn["results"] == 1
     assert turn["cost_usd"] > 0 and turn["model_calls"] == 2 and turn["client"] == "browser"
     assert refused["status"] == 400 and refused["query"] == "x" and refused["vertical"] == "nope"
+    assert turn["ip"] == "198.51.100.4"
 
 
-def test_the_line_has_no_address_and_bounds_its_text():
+def test_the_line_carries_the_address_and_bounds_its_text():
     stream = io.StringIO()
     querylog.emit({"endpoint": "/feed.xml", "query": "q" * 2000, "status": 200, "user_agent": "u" * 900,
-                   "error": None}, stream)
+                   "error": None, "ip": "203.0.113.7"}, stream)
     line = json.loads(stream.getvalue())
     assert len(line["query"]) == querylog.QUERY_CHARS and len(line["user_agent"]) == querylog.TEXT_CHARS
-    assert not {"ip", "remote_ip", "remoteIp", "headers"} & set(line)
+    assert line["ip"] == "203.0.113.7" and "headers" not in line
     assert line["log"] == "query" and line["severity"] == "INFO"

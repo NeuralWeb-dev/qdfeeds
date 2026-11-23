@@ -6,8 +6,9 @@ Cloud Run's own request log has the URL of a feed fetch but not the body of a se
 (POST /api/search), so without this line those queries are recorded nowhere.
 
 A line carries what was asked and how it went: the endpoint, vertical, query (and the standalone
-rewrite of a follow-up), status, result count, latency, model spend and the caller's user agent.
-Never the caller's address, any other header, or anything from the configuration. Feed readers
+rewrite of a follow-up), status, result count, latency, model spend, the caller's user agent and
+address ("ip", resolved by askhub's rate_limit.client_ip, as the NLWeb samples resolve it). No other
+header and nothing from the configuration. Feed readers
 polling a standing feed are logged too, marked "client": "program" by their user agent.
 """
 
@@ -19,6 +20,13 @@ import os
 import sys
 from typing import Any, TextIO
 
+from askhub.rate_limit import client_ip
+
+# Cloud Run is reachable only through Google's front end, whose address is not fixed (the NLWeb
+# samples run with ASKHUB_TRUSTED_PROXY_IPS=* for the same reason): the caller is the hop it
+# appended to X-Forwarded-For, never the front end's 169.254.x peer address.
+TRUSTED_PROXIES = ("*",)
+
 QUERY_CHARS = 500
 TEXT_CHARS = 200
 
@@ -27,6 +35,11 @@ def client_kind(user_agent: str) -> str:
     """"browser" for a person's browser, "program" for anything else (a feed reader on a schedule,
     a script), so the viewer can tell people from pollers."""
     return "browser" if "mozilla/" in user_agent.lower() else "program"
+
+
+def caller_ip(scope: dict) -> str:
+    """The caller's address for a Starlette/ASGI request scope."""
+    return client_ip(scope, TRUSTED_PROXIES)
 
 
 def emit(record: dict[str, Any], stream: TextIO | None = None) -> None:
